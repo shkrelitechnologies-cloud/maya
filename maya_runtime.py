@@ -15,6 +15,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from operations_ledger import append_event
+
 ROOT = Path(__file__).resolve().parent
 TZ = ZoneInfo("Asia/Kolkata")
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
@@ -138,6 +140,8 @@ def main():
     state_path.parent.mkdir(parents=True, exist_ok=True)
 
     try:
+        append_event(ROOT, event_type="run", status="run_started",
+                     message="Maya maintenance run started; publishing remains disabled.")
         config, target, wallets, images, eligible, errors, warnings = validate()
         state = load_json(state_path, {})
         if not isinstance(state, dict):
@@ -175,6 +179,16 @@ def main():
         queue = build_queue(wallets, images, eligible, day_key, rotation_cursor) if not errors else []
         if queue:
             state["image_rotation_cursor"] = rotation_cursor + len(queue)
+            for item in queue:
+                append_event(
+                    ROOT, event_type="site_queue", status="prepared",
+                    site_name=item.get("site_name", ""),
+                    target_url=item.get("submission_url", ""),
+                    message="Queue item prepared only; no website submission or publication occurred.",
+                )
+        else:
+            append_event(ROOT, event_type="queue", status="prepared",
+                         message="No eligible sites were available for queue preparation.")
         else:
             state.setdefault("image_rotation_cursor", rotation_cursor)
         write_csv(ROOT / "submission_queue.csv", queue)
@@ -201,6 +215,10 @@ def main():
             "state_persistence": "GitHub Actions cache restore/save plus run artifacts; live continuity must be verified",
         }
         atomic_json(report_path, report)
+        append_event(
+            ROOT, event_type="run", status="run_completed" if not errors else "run_degraded",
+            message=f"Prepared {len(queue)} item(s); verified publications remain {state['verified_successes']}.",
+        )
         print(json.dumps(report, indent=2))
         return 1 if errors else 0
     except Exception:
@@ -210,6 +228,12 @@ def main():
             "traceback": traceback.format_exc(),
         }
         atomic_json(report_path, report)
+        try:
+            append_event(ROOT, event_type="run", status="run_failed",
+                         message="Runtime exception; inspect state/health.json for details.")
+        except Exception as ledger_error:
+            report["ledger_error"] = type(ledger_error).__name__
+            atomic_json(report_path, report)
         print(json.dumps(report, indent=2))
         return 1
 
