@@ -1,0 +1,41 @@
+name: Maya hourly watchdog
+
+on:
+  schedule:
+    # UTC; runs hourly, including overnight.
+    - cron: "7 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: maya-hourly-watchdog
+  cancel-in-progress: false
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check maintenance workflow and recover if stale
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          MAYA_BRANCH: main
+        run: python .github/scripts/watchdog.py
+      - name: Preserve watchdog report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maya-watchdog-${{ github.run_number }}
+          path: state/watchdog.json
+          if-no-files-found: warn
+          retention-days: 30
