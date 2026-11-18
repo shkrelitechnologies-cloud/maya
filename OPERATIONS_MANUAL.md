@@ -41,6 +41,7 @@ The current baseline does not have a publishing adapter. Therefore, it only vali
 - Distinguish prepared, attempted, pending moderation, rejected, failed, and verified published.
 - Only verified published records increment daily and lifetime totals.
 - Report target gap = max(0, 666 - verified daily successes).
+- The repository-local `operations/OPERATIONS_LEDGER.csv` is the audit source of truth. At each run, daily and lifetime counters in `state/daily_state.json` are reconciled from `operations/DAILY_SUMMARY.csv`; never hand-edit counters to make the target appear met.
 - Never promise or fabricate 666. It is a goal dependent on eligible sites, their rules, capacity, and actual approvals.
 
 ## 4. Allowed automatic repairs
