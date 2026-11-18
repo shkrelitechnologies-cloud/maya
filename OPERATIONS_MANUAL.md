@@ -17,6 +17,7 @@ Every maintenance run must:
 5. Reconcile verifiable submission receipts against daily and lifetime ledgers.
 6. Prepare only eligible work; use reviewed site-specific adapters only.
 7. Verify each publication using a durable public URL or documented site receipt. A queued item, HTTP request, form click, accepted-for-review response, or unverified screenshot is NOT a published success.
+8. Every future site adapter must append its prepared, attempted, pending, rejected, failed, blocked, and verified-publication outcomes through `operations_ledger.append_event`; a `published_verified` event must include both the public publication URL and a separate evidence/readback URL.
 8. Persist state and emit machine-readable health and human-readable run summaries.
 9. Append new diagnosis, repair, test evidence, and outcome to the repair log.
 
