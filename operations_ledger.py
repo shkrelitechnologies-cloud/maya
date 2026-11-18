@@ -21,7 +21,8 @@ FIELDS = [
 SUMMARY_FIELDS = [
     "ist_date", "target", "verified_publications", "unique_verified_domains",
     "attempted", "pending_moderation", "prepared", "rejected", "failed",
-    "blocked", "skipped", "remaining_to_target", "lifetime_verified_publications",
+    "blocked", "skipped", "no_eligible_sites", "run_failures", "run_degraded",
+    "remaining_to_target", "lifetime_verified_publications",
     "lifetime_unique_verified_domains",
 ]
 
@@ -153,6 +154,9 @@ def rebuild_summary(root: Path, target: int = 666) -> None:
             row.get("event_type") == "site_queue" and row.get("status") == "prepared"
             for row in rows
         )
+        counts["no_eligible_sites"] = sum(row.get("status") == "no_eligible_sites" for row in rows)
+        counts["run_failures"] = sum(row.get("status") == "run_failed" for row in rows)
+        counts["run_degraded"] = sum(row.get("status") == "run_degraded" for row in rows)
         count = len(publication_ids)
         out.append({
             "ist_date": day, "target": target,
