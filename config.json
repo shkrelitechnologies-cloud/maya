@@ -3,12 +3,28 @@
   "timezone": "Asia/Kolkata",
   "daily_success_target": 666,
   "schedule_minutes": 15,
+  "watchdog_schedule_minutes": 60,
   "image_rotation": "sequential",
   "publishing_mode": "disabled_until_site_specific_permission_and_adapter_verification",
   "auto_recovery": {
     "enabled": true,
-    "scope": ["runtime_restart_by_workflow", "atomic_state_writes", "health_report", "IST_day_rollover"],
-    "never_retry": ["permission_denied", "captcha", "moderation_block", "rate_limit_without_retry_after", "site_policy_unclear"]
+    "watchdog": "hourly",
+    "stale_success_threshold_minutes": 45,
+    "scope": [
+      "runtime_restart_by_workflow",
+      "workflow_reenable_if_api_permits",
+      "bounded_workflow_dispatch",
+      "atomic_state_writes",
+      "health_report",
+      "IST_day_rollover"
+    ],
+    "never_retry": [
+      "permission_denied",
+      "captcha",
+      "moderation_block",
+      "rate_limit_without_retry_after",
+      "site_policy_unclear"
+    ]
   },
   "counting": {
     "only_verified_successes": true,
