@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parent
 TZ = ZoneInfo("Asia/Kolkata")
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
 WALLET_KEYS = {"bitcoin", "ethereum", "solana"}
-TARGET_PER_DAY = 666
+TARGET_PER_DAY = int(load_json(ROOT / "config.json", {}).get("daily_success_target", 666))
 
 
 def now_ist():
@@ -43,6 +43,12 @@ def atomic_json(path, data):
 
 def validate():
     errors, warnings = [], []
+    manual = ROOT / "OPERATIONS_MANUAL.md"
+    if not manual.is_file() or not manual.read_text(encoding="utf-8").strip():
+        errors.append("OPERATIONS_MANUAL.md missing or empty; fail-closed")
+    repair_log = ROOT / "SELF_REPAIR_LOG.md"
+    if not repair_log.is_file():
+        errors.append("SELF_REPAIR_LOG.md missing; fail-closed")
     wallets = load_json(ROOT / "wallets.json", {})
     if set(wallets) != WALLET_KEYS or not all(isinstance(v, str) and v.strip() for v in wallets.values()):
         errors.append("wallets.json must contain non-empty bitcoin, ethereum and solana values")
@@ -122,9 +128,10 @@ def main():
             history = state.get("history", [])
             if state.get("day_ist"):
                 history.append({k: v for k, v in state.items() if k != "history"})
-            state = {"history": history[-90:], "day_ist": day_key, "verified_successes": 0, "failed": 0}
+            state = {"history": history[-90:], "day_ist": day_key, "verified_successes": 0, "failed": 0, "lifetime_verified_successes": int(state.get("lifetime_verified_successes", 0))}
         state.setdefault("verified_successes", 0)
         state.setdefault("failed", 0)
+        state.setdefault("lifetime_verified_successes", 0)
         state["target"] = TARGET_PER_DAY
         state["timezone"] = "Asia/Kolkata"
         state["last_heartbeat_ist"] = stamp.isoformat()
@@ -138,6 +145,8 @@ def main():
             "timezone": "Asia/Kolkata",
             "daily_target": TARGET_PER_DAY,
             "verified_successes_today": int(state["verified_successes"]),
+            "lifetime_verified_successes": int(state["lifetime_verified_successes"]),
+            "state_persistence": "workflow cache configured; live restore must be verified",
             "remaining_to_target": state["remaining_to_target"],
             "images_found": len(images),
             "eligible_registry_rows": len(eligible),
@@ -146,6 +155,8 @@ def main():
             "errors": errors,
             "warnings": warnings,
             "publishing": "DISABLED: no verified site-specific permitted adapter is configured",
+            "manual_checked": (ROOT / "OPERATIONS_MANUAL.md").is_file(),
+            "repair_log_checked": (ROOT / "SELF_REPAIR_LOG.md").is_file(),
         }
         atomic_json(report_path, report)
         print(json.dumps(report, indent=2))
