@@ -3,6 +3,9 @@ name: Maya 15-minute watchdog
 on:
   push:
     branches: [main]
+    paths:
+      - .github/scripts/watchdog.py
+      - .github/workflows/maya-watchdog.yml
   schedule:
     # UTC; runs every 15 minutes, including overnight.
     - cron: "*/15 * * * *"
