@@ -22,6 +22,7 @@ SUMMARY_FIELDS = [
     "ist_date", "target", "verified_publications", "unique_verified_domains",
     "attempted", "pending_moderation", "prepared", "rejected", "failed",
     "blocked", "skipped", "remaining_to_target", "lifetime_verified_publications",
+    "lifetime_unique_verified_domains",
 ]
 
 
