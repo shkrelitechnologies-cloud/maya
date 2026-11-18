@@ -20,6 +20,7 @@ from pathlib import Path
 API = "https://api.github.com"
 WORKFLOW = "maya-maintenance.yml"
 STALE_ACTIVE_MINUTES = 20
+STALE_QUEUED_MINUTES = 15
 REPORT = Path("state/watchdog.json")
 
 
@@ -86,7 +87,7 @@ def main():
         for run in active:
             stamp = run.get("created_at")
             age = (now - datetime.fromisoformat(stamp.replace("Z", "+00:00"))).total_seconds() / 60 if stamp else 0
-            limit = STALE_ACTIVE_MINUTES if run.get("status") == "in_progress" else 45
+            limit = STALE_ACTIVE_MINUTES if run.get("status") == "in_progress" else STALE_QUEUED_MINUTES
             if age > limit:
                 stale_active.append(run)
         if stale_active:
