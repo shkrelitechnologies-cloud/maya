@@ -119,13 +119,18 @@ def rebuild_summary(root: Path, target: int = 666) -> None:
     today = now_ist().date().isoformat()
     grouped.setdefault(today, [])
 
-    lifetime_ids = {
-        row.get("publication_id") or row.get("publication_url")
-        for row in ledger
+    lifetime_publications = [
+        row for row in ledger
         if row.get("status") == "published_verified"
         and row.get("verified", "").lower() == "true"
         and row.get("publication_url")
+    ]
+    lifetime_ids = {
+        row.get("publication_id") or row.get("publication_url")
+        for row in lifetime_publications
     }
+    lifetime_domains = {_domain(row.get("publication_url", "")) for row in lifetime_publications}
+    lifetime_domains.discard("")
     out = []
     for day in sorted(grouped):
         rows = grouped[day]
@@ -153,5 +158,6 @@ def rebuild_summary(root: Path, target: int = 666) -> None:
             "verified_publications": count, "unique_verified_domains": len(domains),
             **counts, "remaining_to_target": max(0, target - count),
             "lifetime_verified_publications": len(lifetime_ids),
+            "lifetime_unique_verified_domains": len(lifetime_domains),
         })
     _atomic_csv(root / "operations" / "DAILY_SUMMARY.csv", SUMMARY_FIELDS, out)
