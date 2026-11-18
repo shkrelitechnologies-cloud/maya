@@ -3,12 +3,12 @@
   "timezone": "Asia/Kolkata",
   "daily_success_target": 666,
   "schedule_minutes": 15,
-  "watchdog_schedule_minutes": 60,
+  "watchdog_schedule_minutes": 15,
   "image_rotation": "sequential",
   "publishing_mode": "disabled_until_site_specific_permission_and_adapter_verification",
   "auto_recovery": {
     "enabled": true,
-    "watchdog": "hourly",
+    "watchdog": "every_15_minutes",
     "stale_success_threshold_minutes": 45,
     "scope": [
       "runtime_restart_by_workflow",
