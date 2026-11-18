@@ -13,7 +13,7 @@ permissions:
   actions: write
 
 concurrency:
-  group: maya-hourly-watchdog
+  group: maya-15-minute-watchdog
   cancel-in-progress: false
 
 jobs:
