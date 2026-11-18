@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: maya-maintenance
@@ -31,7 +31,7 @@ jobs:
           python-version: "3.12"
       - name: Validate source, config and whitespace
         run: |
-          python -m py_compile maya.py maya_runtime.py .github/scripts/watchdog.py
+          python -m py_compile maya.py maya_runtime.py operations_ledger.py .github/scripts/watchdog.py
           python -m json.tool config.json > /dev/null
           git diff --check
       - name: Restore persistent operational state
@@ -49,6 +49,20 @@ jobs:
         with:
           path: state
           key: maya-state-${{ github.ref_name }}-${{ github.run_id }}
+      - name: Commit repository-local operations ledger
+        if: always() && github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Maya operations bot'
+          git config user.email 'maya-operations@users.noreply.github.com'
+          git add -- operations/OPERATIONS_LEDGER.csv operations/DAILY_SUMMARY.csv
+          if git diff --cached --quiet; then
+            echo 'Operations ledger unchanged.'
+            exit 0
+          fi
+          git commit -m "Update Maya IST operations ledger"
+          git push origin HEAD:main
       - name: Preserve health report and queue
         if: always()
         uses: actions/upload-artifact@v4
@@ -58,5 +72,7 @@ jobs:
             state/health.json
             state/daily_state.json
             submission_queue.csv
+            operations/OPERATIONS_LEDGER.csv
+            operations/DAILY_SUMMARY.csv
           if-no-files-found: warn
           retention-days: 30
