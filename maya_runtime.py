@@ -187,10 +187,9 @@ def main():
                     message="Queue item prepared only; no website submission or publication occurred.",
                 )
         else:
+            state.setdefault("image_rotation_cursor", rotation_cursor)
             append_event(ROOT, event_type="queue", status="prepared",
                          message="No eligible sites were available for queue preparation.")
-        else:
-            state.setdefault("image_rotation_cursor", rotation_cursor)
         write_csv(ROOT / "submission_queue.csv", queue)
         atomic_json(state_path, state)
 
