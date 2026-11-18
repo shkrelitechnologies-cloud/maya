@@ -1,32 +1,44 @@
 # Maya — College Fundraising Outreach
 
-Maya organizes campaign images and the campaign's three fixed cryptocurrency wallet addresses, then prepares a review queue for websites that explicitly permit fundraising submissions.
+Maya is the repository-owned campaign operations project. The repository contains the campaign assets, fixed wallet addresses, site registry template, queue generator, unattended maintenance runtime, and scheduled health workflow.
 
-## Current assets
+## Current verified assets
+- Campaign images: stored in `images/` (the repository currently contains 15 PNG images).
+- Fixed wallets: `wallets.json`.
+- Queue generator: `maya.py`.
+- Maintenance runtime: `maya_runtime.py`.
+- Runtime configuration: `config.json`.
+- Scheduled workflow: `.github/workflows/maya-maintenance.yml`.
 
-- 15 campaign images in `images/`
-- Shared wallet addresses in `wallets.json`
-- Queue generator: `maya.py`
+## Operating clock and target
+- Timezone: `Asia/Kolkata` (IST).
+- Daily target: 666 verified successful publications in each IST calendar day.
+- Daily counter rollover: 00:00 IST. Historical daily records are retained locally in runtime state when the runtime is run on a persistent host.
+- GitHub Actions runs maintenance every 15 minutes. GitHub schedule expressions use UTC; the runtime itself calculates the day and timestamps in IST.
+- Drafts, attempts, and failures never count as successful publications.
 
-## Permission-first workflow
+## What currently runs unattended
+The scheduled workflow checks wallet structure, image availability, registry structure, prepares a deterministic rotating-image queue, writes a health report, and records an IST heartbeat. GitHub Actions automatically starts a fresh runner for each scheduled execution and stores reports as workflow artifacts.
 
-1. Find a relevant public community or submission page.
-2. Read its current rules and confirm that fundraising posts are explicitly allowed.
-3. Add the page to `sites.csv`; set `fundraising_allowed` to exactly `allowed` only after checking.
-4. Record the language and review date. Translate any required campaign explanation accurately; do not post wallet addresses without enough context for readers to understand the purpose.
-5. Run `python maya.py` to prepare a CSV queue. Images rotate across eligible sites; all three wallet addresses are loaded from the same `wallets.json`.
-6. Review each draft and submit only through the site's normal permitted process. Record outcomes and honor removals or opt-outs.
+## Important publishing boundary and current status
+**Publishing is deliberately disabled in this baseline.** A generic browser script that posts the same fundraising appeal across arbitrary websites is not a safe or reliable integration: websites differ in rules, consent, rate limits, moderation, authentication, and permitted automation. Maya must not evade CAPTCHAs, access controls, moderation, rate limits, or site policies.
 
-## Run
+To enable unattended publishing on a particular website, add a dedicated adapter only after verifying that the site explicitly permits automated fundraising submissions and that the adapter uses an authorized, documented submission route. Each adapter must enforce that site's rate limits, deduplicate submissions, stop on blocks or policy uncertainty, record verifiable success receipts, and support image uploads only where allowed. No generic form-filling fallback is permitted.
 
-```bash
-cp sites.example.csv sites.csv
-# Edit sites.csv with verified, permitted submission pages.
-python maya.py
-```
+The target of 666 is an operational goal, not a guarantee. Maya must never manufacture success counts or keep retrying a site after it rejects or blocks submissions.
 
-The program does not crawl the web, create accounts, submit posts, evade moderation, or bypass rate limits. It prepares drafts only. Do not use it for unsolicited bulk posting, repetitive comments, or sites that prohibit fundraising.
+## Setup
+1. Review the campaign purpose and ensure the public campaign information is truthful and verifiable.
+2. Copy `sites.example.csv` to `sites.csv`.
+3. Add only relevant sites after checking current rules; record their rules URL, submission URL, language, and review date.
+4. Keep the 15 campaign images in `images/`; the runtime rotates them deterministically.
+5. Enable GitHub Actions in the repository. The scheduled workflow runs every 15 minutes automatically.
 
-## Trust and transparency
+## Diagnostics
+- Workflow: `Actions → Maya 24x7 maintenance`.
+- Each run uploads a health report and queue artifact.
+- A degraded health report lists validation errors. A failed run is visible in Actions and is retried at the next scheduled interval.
+- No external payment processor or paid API is required for the maintenance runtime. The three public wallet addresses remain in `wallets.json`.
 
-Before publishing, add a concise, truthful explanation of the college, the fundraising purpose, who receives funds, how funds are used, and how donors can verify the campaign. Never imply institutional endorsement unless authorized. Never invent impact claims, deadlines, identities, or donation receipts.
+## Security
+Do not put private keys, seed phrases, passwords, session cookies, or access tokens in the repository. Wallet addresses are public receiving addresses only. Keep fundraising claims accurate and disclose the beneficiary, purpose, and intended use of funds.
