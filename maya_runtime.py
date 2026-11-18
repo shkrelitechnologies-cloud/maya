@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from operations_ledger import append_event
+from operations_ledger import append_event, rebuild_summary
 
 ROOT = Path(__file__).resolve().parent
 TZ = ZoneInfo("Asia/Kolkata")
@@ -190,6 +190,13 @@ def main():
             state.setdefault("image_rotation_cursor", rotation_cursor)
             append_event(ROOT, event_type="queue", status="no_eligible_sites",
                          message="No eligible sites were available for queue preparation.")
+        ledger_summary = rebuild_summary(ROOT, target)
+        state["verified_successes"] = max(0, int(ledger_summary.get("verified_publications", 0)))
+        state["lifetime_verified_successes"] = max(
+            0, int(ledger_summary.get("lifetime_verified_publications", 0))
+        )
+        state["remaining_to_target"] = max(0, target - state["verified_successes"])
+
         write_csv(ROOT / "submission_queue.csv", queue)
         atomic_json(state_path, state)
 
