@@ -1,0 +1,19 @@
+{
+  "project": "Maya",
+  "timezone": "Asia/Kolkata",
+  "daily_success_target": 666,
+  "schedule_minutes": 15,
+  "image_rotation": "sequential",
+  "publishing_mode": "disabled_until_site_specific_permission_and_adapter_verification",
+  "auto_recovery": {
+    "enabled": true,
+    "scope": ["runtime_restart_by_workflow", "atomic_state_writes", "health_report", "IST_day_rollover"],
+    "never_retry": ["permission_denied", "captcha", "moderation_block", "rate_limit_without_retry_after", "site_policy_unclear"]
+  },
+  "counting": {
+    "only_verified_successes": true,
+    "drafts_count": false,
+    "attempts_count": false,
+    "failed_submissions_count": false
+  }
+}
