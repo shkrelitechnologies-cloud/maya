@@ -95,12 +95,12 @@ def validate():
     return config, target, wallets, images, eligible, errors, warnings
 
 
-def build_queue(wallets, images, eligible, day_key):
+def build_queue(wallets, images, eligible, day_key, rotation_cursor=0):
     if not images or not wallets:
         return []
     rows = []
     for index, site in enumerate(eligible):
-        image = images[index % len(images)]
+        image = images[(rotation_cursor + index) % len(images)]
         rows.append({
             "site_name": site.get("site_name", ""),
             "submission_url": site.get("submission_url", ""),
@@ -149,9 +149,11 @@ def main():
                 history = []
             if state.get("day_ist"):
                 history.append({k: v for k, v in state.items() if k != "history"})
+            prior_image_cursor = max(0, int(state.get("image_rotation_cursor", 0) or 0))
             state = {
                 "history": history[-90:],
                 "day_ist": day_key,
+                "image_rotation_cursor": prior_image_cursor,
                 "verified_successes": 0,
                 "failed": 0,
                 "lifetime_verified_successes": int(state.get("lifetime_verified_successes", 0) or 0),
@@ -169,7 +171,12 @@ def main():
         state["last_heartbeat_ist"] = stamp.isoformat()
         state["remaining_to_target"] = max(0, target - state["verified_successes"])
 
-        queue = build_queue(wallets, images, eligible, day_key) if not errors else []
+        rotation_cursor = max(0, int(state.get("image_rotation_cursor", 0) or 0))
+        queue = build_queue(wallets, images, eligible, day_key, rotation_cursor) if not errors else []
+        if queue:
+            state["image_rotation_cursor"] = rotation_cursor + len(queue)
+        else:
+            state.setdefault("image_rotation_cursor", rotation_cursor)
         write_csv(ROOT / "submission_queue.csv", queue)
         atomic_json(state_path, state)
 
@@ -182,6 +189,7 @@ def main():
             "lifetime_verified_successes": state["lifetime_verified_successes"],
             "remaining_to_target": state["remaining_to_target"],
             "images_found": len(images),
+            "image_rotation_cursor": state.get("image_rotation_cursor", 0),
             "eligible_registry_rows": len(eligible),
             "prepared_records": len(queue),
             "published_by_this_runtime": 0,
