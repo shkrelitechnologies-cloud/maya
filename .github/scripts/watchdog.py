@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hourly Maya watchdog.
+"""15-minute Maya watchdog.
 
 Checks the maintenance workflow through the GitHub Actions API. If the
 maintenance workflow is disabled, attempts the documented enable action.
