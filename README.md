@@ -1,44 +1,47 @@
 # Maya — College Fundraising Outreach
 
-Maya is the repository-owned campaign operations project. The repository contains the campaign assets, fixed wallet addresses, site registry template, queue generator, unattended maintenance runtime, and scheduled health workflow.
+Maya is a repository-owned campaign operations project. It validates campaign assets, prepares a deterministic image-rotating queue, maintains an IST ledger, and monitors its own GitHub Actions maintenance workflow.
 
 ## Current verified assets
-- Campaign images: stored in `images/` (the repository currently contains 15 PNG images).
-- Fixed wallets: `wallets.json`.
+- Campaign images: stored in `images/` (the baseline contains 15 PNG images; the runtime counts supported image files at execution time).
+- Fixed public receiving addresses: `wallets.json`.
 - Queue generator: `maya.py`.
 - Maintenance runtime: `maya_runtime.py`.
+- Hourly watchdog: `.github/scripts/watchdog.py`.
 - Runtime configuration: `config.json`.
-- Scheduled workflow: `.github/workflows/maya-maintenance.yml`.
+- Maintenance workflow: `.github/workflows/maya-maintenance.yml`.
+- Hourly watchdog workflow: `.github/workflows/maya-watchdog.yml`.
 
 ## Operating clock and target
 - Timezone: `Asia/Kolkata` (IST).
-- Daily target: 666 verified successful publications in each IST calendar day.
-- Daily counter rollover: 00:00 IST. Historical daily records are retained locally in runtime state when the runtime is run on a persistent host.
-- GitHub Actions runs maintenance every 15 minutes. GitHub schedule expressions use UTC; the runtime itself calculates the day and timestamps in IST.
-- Drafts, attempts, and failures never count as successful publications.
+- Goal: 666 verified successful publications in each IST calendar day.
+- Daily counter rollover: 00:00 IST; lifetime records are retained.
+- Maintenance workflow: every 15 minutes.
+- Independent workflow watchdog: hourly. It checks the maintenance workflow, attempts to re-enable it if GitHub reports it disabled, and dispatches a recovery run if no successful run completed within 45 minutes and no run is already active.
+- Prepared items, attempts, failures, pending moderation, and unverified receipts never count as successful publications.
 
-## What currently runs unattended
-The scheduled workflow checks wallet structure, image availability, registry structure, prepares a deterministic rotating-image queue, writes a health report, and records an IST heartbeat. GitHub Actions automatically starts a fresh runner for each scheduled execution and stores reports as workflow artifacts.
+## Image rotation
+The runtime assigns images sequentially from `images/` to eligible queue records. Each adjacent record gets the next image; the sequence loops after the available image set. The CSV includes the selected image path and SHA-256 so the asset used by each prepared record can be audited. This is queue preparation, not proof that an image was posted.
 
-## Important publishing boundary and current status
-**Publishing is deliberately disabled in this baseline.** A generic browser script that posts the same fundraising appeal across arbitrary websites is not a safe or reliable integration: websites differ in rules, consent, rate limits, moderation, authentication, and permitted automation. Maya must not evade CAPTCHAs, access controls, moderation, rate limits, or site policies.
+## What runs unattended
+The 15-minute workflow validates configuration, wallet structure, image availability, registry structure, prepares the queue, writes a health report, and records an IST heartbeat. The hourly watchdog checks recent workflow runs and can safely request one recovery execution. Both preserve run reports as GitHub Actions artifacts.
 
-To enable unattended publishing on a particular website, add a dedicated adapter only after verifying that the site explicitly permits automated fundraising submissions and that the adapter uses an authorized, documented submission route. Each adapter must enforce that site's rate limits, deduplicate submissions, stop on blocks or policy uncertainty, record verifiable success receipts, and support image uploads only where allowed. No generic form-filling fallback is permitted.
+GitHub Actions runners are ephemeral. The maintenance workflow restores and saves a cache for operational state and uploads artifacts as an audit trail. Cache retention/eviction and workflow execution must be verified from live runs; cache is not a database or an absolute durability guarantee.
 
-The target of 666 is an operational goal, not a guarantee. Maya must never manufacture success counts or keep retrying a site after it rejects or blocks submissions.
+## Publishing status and important limits
+**Publishing is disabled in this baseline.** The runtime does not submit posts to third-party websites. No generic form-filling, mass unsolicited outreach, CAPTCHA bypass, access-control evasion, moderation evasion, or rate-limit evasion is allowed.
 
-## Setup
-1. Review the campaign purpose and ensure the public campaign information is truthful and verifiable.
-2. Copy `sites.example.csv` to `sites.csv`.
-3. Add only relevant sites after checking current rules; record their rules URL, submission URL, language, and review date.
-4. Keep the 15 campaign images in `images/`; the runtime rotates them deterministically.
-5. Enable GitHub Actions in the repository. The scheduled workflow runs every 15 minutes automatically.
+A site-specific adapter may be added only after its current official rules explicitly permit the intended automated fundraising submission and the method is reviewed. Each adapter must enforce per-site limits, deduplicate, stop on blocks or policy uncertainty, and record verifiable publication receipts. The 666 target is an operational goal, not a guarantee.
 
-## Diagnostics
-- Workflow: `Actions → Maya 24x7 maintenance`.
-- Each run uploads a health report and queue artifact.
-- A degraded health report lists validation errors. A failed run is visible in Actions and is retried at the next scheduled interval.
-- No external payment processor or paid API is required for the maintenance runtime. The three public wallet addresses remain in `wallets.json`.
+The watchdog cannot repair GitHub account restrictions, repository-level Actions disablement, revoked permissions, exhausted platform quotas, or an outage that prevents GitHub from starting the watchdog itself. For detection of those platform-wide failures, configure an independent external heartbeat monitor. Never describe the system as error-proof or continuously running unless live evidence supports that claim.
+
+## Setup and diagnostics
+1. Keep only truthful, verifiable campaign information and the existing public receiving addresses.
+2. Copy `sites.example.csv` to `sites.csv` and add only sites whose current rules explicitly permit the intended activity.
+3. Keep campaign images in `images/`; queue records rotate through the available images.
+4. Enable GitHub Actions and confirm both workflows are active.
+5. Inspect `Actions → Maya 24x7 maintenance` and `Actions → Maya hourly watchdog`.
+6. Download the run artifacts and verify consecutive cache restoration, IST rollover, health status, and image hashes before relying on the ledger.
 
 ## Security
-Do not put private keys, seed phrases, passwords, session cookies, or access tokens in the repository. Wallet addresses are public receiving addresses only. Keep fundraising claims accurate and disclose the beneficiary, purpose, and intended use of funds.
+Never commit private keys, seed phrases, passwords, session cookies, or access tokens. Wallet addresses are public receiving addresses only. Disclose the beneficiary, purpose, and intended use of funds accurately.
