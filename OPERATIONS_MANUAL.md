@@ -26,9 +26,9 @@ The current baseline does not have a publishing adapter. Therefore, it only vali
 ## 2. Watchdog and recovery
 - `.github/workflows/maya-maintenance.yml` runs every 15 minutes.
 - `.github/workflows/maya-watchdog.yml` runs hourly.
-- The watchdog checks the maintenance workflow state and recent runs through the GitHub Actions API.
+- The watchdog runs every 15 minutes, checks the maintenance workflow state and recent runs through the GitHub Actions API, and requests cancellation of stale active runs before dispatching a bounded recovery run.
 - If the maintenance workflow is disabled, the watchdog attempts GitHub's workflow-enable operation.
-- If no successful maintenance run completed in the last 45 minutes and no maintenance run is active, the watchdog dispatches one recovery run.
+- If no successful maintenance run completed in the last 45 minutes and no maintenance run is active, the watchdog dispatches one recovery run. A stale active run is cancelled first; the next watchdog cycle dispatches only after GitHub releases the concurrency lock.
 - The watchdog records its result in `state/watchdog.json` and uploads it as a workflow artifact.
 - The watchdog does not edit executable code, campaign assets, wallets, beneficiary details, or site permissions.
 - If the watchdog itself cannot run, GitHub Actions is unavailable/disabled, repository permissions are revoked, or platform quotas are exhausted, an in-repository workflow cannot repair that platform-level failure. An independent external heartbeat is needed to detect that class of outage.
@@ -51,7 +51,7 @@ The bot may automatically repair only deterministic, low-risk, runtime-owned out
 - Regenerate malformed generated health output.
 - Restore runtime-owned state from a validated backup or workflow cache.
 - Normalize generated JSON formatting without changing semantic values.
-- Request a bounded workflow recovery through the hourly watchdog.
+- Request a bounded workflow recovery through the 15-minute watchdog.
 
 Every repair must be logged with IST timestamp, symptom, root cause, exact files changed, backup location/hash where relevant, test command, test result, and whether the repair was verified.
 
