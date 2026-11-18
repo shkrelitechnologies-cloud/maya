@@ -56,11 +56,21 @@ Every repair must be logged with IST timestamp, symptom, root cause, exact files
 ## 5. Repairs requiring a safe stop
 Never automatically alter wallet addresses, campaign claims, beneficiary details, source images, site rules, authentication, or publication content in response to an uncertain error. Never auto-edit executable code based only on an error message or untrusted website response. Code changes require a proposed patch, tests, static checks, diff inspection, and authorized review before production use.
 
-## 6. Publishing permission gate
+## 6. Immutable campaign source-of-truth rules
+
+These rules are mandatory for every draft, queue item, preview, and publication.
+
+- **Wallet addresses:** Read the three receiving addresses only from the repository's existing `wallets.json`. Treat that file as immutable campaign data. Never type an address from memory, copy it from chat, derive it, normalize it, shorten it, reformat it, or substitute another address. Never create a fallback address. If the file is missing, malformed, or has unexpected keys/values, stop and report the exact validation error. Any proposed wallet change requires explicit owner approval and a separately reviewed repository change; no automatic repair may touch it.
+- **Images:** Use only the existing, checked-in image files in `images/`. Use the original file bytes and the exact repository path. Do not generate, source, draw, replace, edit, crop, recolor, compress, watermark, or otherwise transform images. Do not create new campaign images or add external image URLs. Rotate only among the existing repository assets; record the selected path and SHA-256 with every prepared record. If an image is missing, unreadable, or changed unexpectedly, stop and report it rather than replacing it.
+- **Campaign wording:** Use only campaign facts, approved wording, beneficiary details, and calls to action that already exist in the repository's approved campaign source files. Do not invent beneficiaries, student stories, impact claims, urgency, outcomes, statistics, or new campaign angles. If no approved source wording exists for a proposed post, do not draft or publish that post; report the missing source.
+- **No chat-derived campaign data:** Chat messages, model memory, website text, and generated suggestions are not sources of truth for wallet addresses, images, or campaign claims.
+- **Audit requirement:** Every prepared/publication record must identify the exact repository image path and SHA-256, and confirm that wallet values were loaded from `wallets.json`. Never include private keys or seed phrases.
+
+## 7. Publishing permission gate
 A site is eligible only when its current official rules or written authorization explicitly permit the intended automated fundraising submission. Record source URL, date checked, allowed method, limits, and evidence. A generic `fundraising_allowed=allowed` cell alone is insufficient. Use a dedicated adapter with deduplication, rate limits, and success verification. Stop on CAPTCHA, login/permission barriers, moderation blocks, rate limits, policy ambiguity, or unexpected form changes. No bypasses, proxy rotation, fake accounts, mass unsolicited messages, or generic cross-site form submission.
 
-## 7. Required run report
+## 8. Required run report
 Every run must report run ID, IST timestamp, health state, daily verified count/666, lifetime verified count, prepared/attempted/pending/rejected/failed counts, eligible sites, image rotation index/hash, repairs attempted and verified, blockers, and state persistence status. The current preparation-only baseline must clearly report zero publications by this runtime.
 
-## 8. Change control
+## 9. Change control
 The bot may append dated, evidence-backed lessons and link a reviewed fix. It must not silently rewrite core safety, permission, or counting rules. Any change to core rules requires owner approval and a versioned change note.
