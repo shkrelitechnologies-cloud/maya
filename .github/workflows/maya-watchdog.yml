@@ -5,7 +5,7 @@ on:
     branches: [main]
   schedule:
     # UTC; runs hourly, including overnight.
-    - cron: "7 * * * *"
+    - cron: "*/15 * * * *"
   workflow_dispatch:
 
 permissions:
