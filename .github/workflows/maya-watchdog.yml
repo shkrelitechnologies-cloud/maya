@@ -1,10 +1,10 @@
-name: Maya hourly watchdog
+name: Maya 15-minute watchdog
 
 on:
   push:
     branches: [main]
   schedule:
-    # UTC; runs hourly, including overnight.
+    # UTC; runs every 15 minutes, including overnight.
     - cron: "*/15 * * * *"
   workflow_dispatch:
 
