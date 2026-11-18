@@ -162,3 +162,5 @@ def rebuild_summary(root: Path, target: int = 666) -> None:
             "lifetime_unique_verified_domains": len(lifetime_domains),
         })
     _atomic_csv(root / "operations" / "DAILY_SUMMARY.csv", SUMMARY_FIELDS, out)
+    today = now_ist().date().isoformat()
+    return next((row for row in out if row["ist_date"] == today), out[-1] if out else {})
