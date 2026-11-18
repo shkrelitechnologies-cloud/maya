@@ -188,7 +188,7 @@ def main():
                 )
         else:
             state.setdefault("image_rotation_cursor", rotation_cursor)
-            append_event(ROOT, event_type="queue", status="prepared",
+            append_event(ROOT, event_type="queue", status="no_eligible_sites",
                          message="No eligible sites were available for queue preparation.")
         write_csv(ROOT / "submission_queue.csv", queue)
         atomic_json(state_path, state)
