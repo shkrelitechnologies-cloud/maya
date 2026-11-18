@@ -142,7 +142,11 @@ def rebuild_summary(root: Path, target: int = 666) -> None:
         domains = {_domain(row.get("publication_url", "")) for row in verified_rows}
         domains.discard("")
         counts = {key: sum(row.get("status") == key for row in rows) for key in
-                  ("attempted", "pending_moderation", "prepared", "rejected", "failed", "blocked", "skipped")}
+                  ("attempted", "pending_moderation", "rejected", "failed", "blocked", "skipped")}
+        counts["prepared"] = sum(
+            row.get("event_type") == "site_queue" and row.get("status") == "prepared"
+            for row in rows
+        )
         count = len(publication_ids)
         out.append({
             "ist_date": day, "target": target,
