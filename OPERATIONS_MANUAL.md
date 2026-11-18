@@ -18,8 +18,8 @@ Every maintenance run must:
 6. Prepare only eligible work; use reviewed site-specific adapters only.
 7. Verify each publication using a durable public URL or documented site receipt. A queued item, HTTP request, form click, accepted-for-review response, or unverified screenshot is NOT a published success.
 8. Every future site adapter must append its prepared, attempted, pending, rejected, failed, blocked, and verified-publication outcomes through `operations_ledger.append_event`; a `published_verified` event must include both the public publication URL and a separate evidence/readback URL.
-8. Persist state and emit machine-readable health and human-readable run summaries.
-9. Append new diagnosis, repair, test evidence, and outcome to the repair log.
+9. Persist state and emit machine-readable health and human-readable run summaries.
+10. Append new diagnosis, repair, test evidence, and outcome to the repair log.
 
 The current baseline does not have a publishing adapter. Therefore, it only validates assets and prepares records; it does not claim to publish.
 
