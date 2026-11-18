@@ -1,18 +1,15 @@
 #!/usr/bin/env python3
 """Maya unattended maintenance runtime.
 
-This runtime validates campaign assets, rotates images for eligible registry
-entries, maintains an IST daily ledger, and writes a health report. It does
-NOT submit content to third-party websites. Publishing requires a site-specific
-adapter whose current rules explicitly permit automated fundraising.
+Validates assets, rotates images in prepared records, maintains an IST daily
+ledger, and writes a health report. Publishing remains disabled until a
+site-specific adapter is independently reviewed and explicitly permitted.
 """
 from __future__ import annotations
 
 import csv
 import hashlib
 import json
-import os
-import sys
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
@@ -22,20 +19,20 @@ ROOT = Path(__file__).resolve().parent
 TZ = ZoneInfo("Asia/Kolkata")
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
 WALLET_KEYS = {"bitcoin", "ethereum", "solana"}
-TARGET_PER_DAY = int(load_json(ROOT / "config.json", {}).get("daily_success_target", 666))
+
+
+def load_json(path: Path, default=None):
+    if not path.exists():
+        return default
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def now_ist():
     return datetime.now(timezone.utc).astimezone(TZ)
 
 
-def load_json(path, default=None):
-    if not path.exists():
-        return default
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def atomic_json(path, data):
+def atomic_json(path: Path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     tmp.replace(path)
@@ -44,17 +41,34 @@ def atomic_json(path, data):
 def validate():
     errors, warnings = [], []
     manual = ROOT / "OPERATIONS_MANUAL.md"
-    if not manual.is_file() or not manual.read_text(encoding="utf-8").strip():
-        errors.append("OPERATIONS_MANUAL.md missing or empty; fail-closed")
     repair_log = ROOT / "SELF_REPAIR_LOG.md"
-    if not repair_log.is_file():
-        errors.append("SELF_REPAIR_LOG.md missing; fail-closed")
+    config_path = ROOT / "config.json"
+
+    for required in (manual, repair_log, config_path):
+        if not required.is_file() or not required.read_text(encoding="utf-8").strip():
+            errors.append(f"{required.name} missing or empty; fail-closed")
+
+    config = load_json(config_path, {})
+    if not isinstance(config, dict):
+        errors.append("config.json must contain a JSON object")
+        config = {}
+    target = config.get("daily_success_target", 666)
+    if not isinstance(target, int) or target < 1:
+        errors.append("daily_success_target must be a positive integer")
+        target = 666
+
     wallets = load_json(ROOT / "wallets.json", {})
-    if set(wallets) != WALLET_KEYS or not all(isinstance(v, str) and v.strip() for v in wallets.values()):
+    if not isinstance(wallets, dict) or set(wallets) != WALLET_KEYS or not all(
+        isinstance(v, str) and v.strip() for v in wallets.values()
+    ):
         errors.append("wallets.json must contain non-empty bitcoin, ethereum and solana values")
+        wallets = {}
 
     image_dir = ROOT / "images"
-    images = sorted(p for p in image_dir.glob("*") if p.is_file() and p.suffix.lower() in IMAGE_EXTS) if image_dir.exists() else []
+    images = sorted(
+        p for p in image_dir.glob("*")
+        if p.is_file() and p.suffix.lower() in IMAGE_EXTS
+    ) if image_dir.exists() else []
     if not images:
         errors.append("No supported campaign images found in images/")
     else:
@@ -62,23 +76,23 @@ def validate():
             if p.stat().st_size == 0:
                 errors.append(f"Empty image file: {p.name}")
 
-    sites_path = ROOT / "sites.csv"
     eligible = []
+    sites_path = ROOT / "sites.csv"
     if sites_path.exists():
         with sites_path.open(newline="", encoding="utf-8-sig") as f:
             reader = csv.DictReader(f)
-            required = {"site_name", "submission_url", "rules_url", "language", "fundraising_allowed", "reviewed_on", "notes"}
+            required = {"site_name", "submission_url", "rules_url", "language",
+                        "fundraising_allowed", "reviewed_on", "notes"}
             if not required.issubset(set(reader.fieldnames or [])):
                 errors.append("sites.csv is missing required columns")
             else:
                 for row in reader:
-                    # Registry eligibility is not sufficient for publishing: this runtime only prepares records.
                     if row.get("fundraising_allowed", "").strip().lower() == "allowed":
                         eligible.append(row)
     else:
-        warnings.append("sites.csv not found; copy sites.example.csv and populate only after checking each site's rules")
+        warnings.append("sites.csv not found; no sites are eligible")
 
-    return wallets, images, eligible, errors, warnings
+    return config, target, wallets, images, eligible, errors, warnings
 
 
 def build_queue(wallets, images, eligible, day_key):
@@ -104,49 +118,68 @@ def build_queue(wallets, images, eligible, day_key):
 
 
 def write_csv(path, rows):
+    path.parent.mkdir(parents=True, exist_ok=True)
     if not rows:
         path.write_text("site_name,status\n", encoding="utf-8")
         return
-    with path.open("w", newline="", encoding="utf-8") as f:
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with tmp.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(rows[0]))
         writer.writeheader()
         writer.writerows(rows)
+    tmp.replace(path)
 
 
 def main():
     stamp = now_ist()
     day_key = stamp.strftime("%Y-%m-%d")
     state_path = ROOT / "state" / "daily_state.json"
-    state_path.parent.mkdir(parents=True, exist_ok=True)
     report_path = ROOT / "state" / "health.json"
+    state_path.parent.mkdir(parents=True, exist_ok=True)
 
     try:
-        wallets, images, eligible, errors, warnings = validate()
+        config, target, wallets, images, eligible, errors, warnings = validate()
         state = load_json(state_path, {})
+        if not isinstance(state, dict):
+            errors.append("daily_state.json is not a JSON object; preserved and fail-closed")
+            state = {}
         if state.get("day_ist") != day_key:
-            # IST midnight rollover; preserve previous-day totals in history.
             history = state.get("history", [])
+            if not isinstance(history, list):
+                history = []
             if state.get("day_ist"):
                 history.append({k: v for k, v in state.items() if k != "history"})
-            state = {"history": history[-90:], "day_ist": day_key, "verified_successes": 0, "failed": 0, "lifetime_verified_successes": int(state.get("lifetime_verified_successes", 0))}
-        state.setdefault("verified_successes", 0)
-        state.setdefault("failed", 0)
-        state.setdefault("lifetime_verified_successes", 0)
-        state["target"] = TARGET_PER_DAY
+            state = {
+                "history": history[-90:],
+                "day_ist": day_key,
+                "verified_successes": 0,
+                "failed": 0,
+                "lifetime_verified_successes": int(state.get("lifetime_verified_successes", 0) or 0),
+            }
+
+        for key in ("verified_successes", "failed", "lifetime_verified_successes"):
+            try:
+                state[key] = max(0, int(state.get(key, 0)))
+            except (TypeError, ValueError):
+                errors.append(f"Invalid {key} in state; fail-closed")
+                state[key] = 0
+
+        state["target"] = target
         state["timezone"] = "Asia/Kolkata"
         state["last_heartbeat_ist"] = stamp.isoformat()
-        state["remaining_to_target"] = max(0, TARGET_PER_DAY - int(state["verified_successes"]))
+        state["remaining_to_target"] = max(0, target - state["verified_successes"])
+
         queue = build_queue(wallets, images, eligible, day_key) if not errors else []
         write_csv(ROOT / "submission_queue.csv", queue)
         atomic_json(state_path, state)
+
         report = {
             "status": "healthy" if not errors else "degraded",
             "checked_at_ist": stamp.isoformat(),
             "timezone": "Asia/Kolkata",
-            "daily_target": TARGET_PER_DAY,
-            "verified_successes_today": int(state["verified_successes"]),
-            "lifetime_verified_successes": int(state["lifetime_verified_successes"]),
-            "state_persistence": "workflow cache configured; live restore must be verified",
+            "daily_target": target,
+            "verified_successes_today": state["verified_successes"],
+            "lifetime_verified_successes": state["lifetime_verified_successes"],
             "remaining_to_target": state["remaining_to_target"],
             "images_found": len(images),
             "eligible_registry_rows": len(eligible),
@@ -157,6 +190,7 @@ def main():
             "publishing": "DISABLED: no verified site-specific permitted adapter is configured",
             "manual_checked": (ROOT / "OPERATIONS_MANUAL.md").is_file(),
             "repair_log_checked": (ROOT / "SELF_REPAIR_LOG.md").is_file(),
+            "state_persistence": "GitHub Actions cache restore/save plus run artifacts; live continuity must be verified",
         }
         atomic_json(report_path, report)
         print(json.dumps(report, indent=2))
