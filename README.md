@@ -21,7 +21,7 @@ Maya is a repository-owned campaign operations project. It validates campaign as
 - Prepared items, attempts, failures, pending moderation, and unverified receipts never count as successful publications.
 
 ## Image rotation
-The runtime assigns images sequentially from `images/` to eligible queue records. Each adjacent record gets the next image; the sequence loops after the available image set. The CSV includes the selected image path and SHA-256 so the asset used by each prepared record can be audited. This is queue preparation, not proof that an image was posted.
+The runtime assigns images sequentially from `images/` to eligible queue records. Each adjacent record gets the next image; the sequence loops after the available image set. A persistent cursor advances between queue generations and is preserved across IST midnight, so each new queue does not restart at the first image. The CSV includes the selected image path and SHA-256 so the asset used by each prepared record can be audited. This is queue preparation, not proof that an image was posted.
 
 ## What runs unattended
 The 15-minute workflow validates configuration, wallet structure, image availability, registry structure, prepares the queue, writes a health report, and records an IST heartbeat. The hourly watchdog checks recent workflow runs and can safely request one recovery execution. Both preserve run reports as GitHub Actions artifacts.
