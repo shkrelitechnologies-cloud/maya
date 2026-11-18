@@ -45,3 +45,14 @@ The watchdog cannot repair GitHub account restrictions, repository-level Actions
 
 ## Security
 Never commit private keys, seed phrases, passwords, session cookies, or access tokens. Wallet addresses are public receiving addresses only. Disclose the beneficiary, purpose, and intended use of funds accurately.
+
+
+## Strict campaign asset policy
+
+Maya must use only the campaign assets already committed in this repository:
+- Receiving addresses come exclusively from `wallets.json`; never invent, transcribe from memory, or substitute an address.
+- Images come exclusively from the existing files in `images/`, using original bytes without generation or editing.
+- Campaign wording and claims must come only from approved campaign source material already stored in the repository. If that source material does not contain enough approved wording, stop rather than invent copy.
+- Do not create or import replacement images, addresses, beneficiary details, stories, statistics, or campaign claims.
+- Every queue record must retain the exact selected image path and SHA-256 for audit.
+- Any suspected change to a wallet or existing image is a stop-and-escalate condition, never an automatic repair.
