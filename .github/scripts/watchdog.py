@@ -19,6 +19,7 @@ from pathlib import Path
 
 API = "https://api.github.com"
 WORKFLOW = "maya-maintenance.yml"
+STALE_ACTIVE_MINUTES = 20
 REPORT = Path("state/watchdog.json")
 
 
@@ -81,7 +82,20 @@ def main():
         result["last_success_age_minutes"] = round(age_minutes, 1) if age_minutes is not None else None
         result["active_runs"] = len(active)
 
-        if active:
+        stale_active = []
+        for run in active:
+            stamp = run.get("created_at")
+            age = (now - datetime.fromisoformat(stamp.replace("Z", "+00:00"))).total_seconds() / 60 if stamp else 0
+            limit = STALE_ACTIVE_MINUTES if run.get("status") == "in_progress" else 45
+            if age > limit:
+                stale_active.append(run)
+        if stale_active:
+            for run in stale_active:
+                api_request("POST", API + "/repos/" + repository + "/actions/runs/" + str(run["id"]) + "/cancel", token)
+            result["status"] = "stale_run_cancel_requested"
+            result["actions"].append("Requested cancellation of stale maintenance run(s); next watchdog cycle will dispatch after GitHub releases the concurrency lock")
+            result["stale_run_ids"] = [r["id"] for r in stale_active]
+        elif active:
             result["status"] = "healthy"
             result["actions"].append("A maintenance run is already active; no duplicate dispatch")
         elif last_success is None or age_minutes > 45:
