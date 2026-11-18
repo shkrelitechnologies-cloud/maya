@@ -5,7 +5,7 @@ This directory is Maya's repository-local audit trail. It is the source of truth
 ## Files
 
 - `OPERATIONS_LEDGER.csv`: append-only event history. Prepared queue items and maintenance runs are recorded but never counted as publications.
-- `DAILY_SUMMARY.csv`: IST calendar-day rollup, including verified publications, unique domains, attempts, pending moderation, failures, and remaining target gap.
+- `DAILY_SUMMARY.csv`: IST calendar-day rollup, including verified publications, unique domains, attempts, pending moderation, failures, remaining target gap, and lifetime unique published domains.
 
 ## Daily clock and target
 
