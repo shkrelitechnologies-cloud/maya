@@ -2,7 +2,7 @@
 
 - Daily target: **666 verified live publications per IST day**.
 - Lifetime total: cumulative verified publications; never reset.
-- Current mode: **site discovery enabled, research-only**, with a 15-minute maintenance schedule.
+- Current mode: **site discovery enabled, research-only**, using Playwright Chromium across DuckDuckGo, Bing, and Google, with a 15-minute maintenance schedule.
 - Discovery queue: `discovery_candidates.csv`; candidates are research leads, not approved destinations.
 - Publishing: **DISABLED** until a site's current rules or written authorization explicitly permit the exact automated submission method and a dedicated adapter passes tests.
 - Count rule: only unique, independently verified live publication URLs/receipt IDs count.
