@@ -1,6 +1,6 @@
 import unittest
 
-from publishing.discovery import SEARCH_ENGINES, merge_leads, parse_rss
+from publishing.discovery import RELEVANT_TERMS, SEARCH_ENGINES, merge_leads, parse_rss
 
 
 RSS = b"""<?xml version="1.0" encoding="UTF-8"?>
@@ -21,7 +21,8 @@ class DiscoveryTests(unittest.TestCase):
     def test_crypto_image_search_engines_are_configured(self):
         self.assertIn("mojeek", SEARCH_ENGINES)
         self.assertIn("startpage", SEARCH_ENGINES)
-        self.assertIn("crypto donation", " ".join(SEARCH_ENGINES.keys()) + " crypto donation")
+        self.assertIn("crypto donation", RELEVANT_TERMS)
+        self.assertIn("bitcoin", RELEVANT_TERMS)
 
     def test_merge_deduplicates_urls(self):
         old = [{"url": "https://example.org/submit", "title": "fundraising site", "last_seen_utc": "old"}]
