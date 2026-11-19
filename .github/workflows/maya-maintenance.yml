@@ -41,6 +41,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install browser discovery runtime
+        run: |
+          python -m pip install --disable-pip-version-check playwright==1.56.0
+          python -m playwright install chromium
       - name: Validate source, config and whitespace
         run: |
           python -m py_compile maya.py maya_runtime.py publishing/permission_gate.py publishing/discovery.py operations_ledger.py .github/scripts/watchdog.py
