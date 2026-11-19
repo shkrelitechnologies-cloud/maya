@@ -1,13 +1,13 @@
 # Maya Operations & Self-Repair Manual
 
-Version: 1.2
+Version: 1.3
 Owner: Maya project
 Clock: Asia/Kolkata (IST)
 Daily verified-publication target: 666
 Lifetime target: tracked cumulatively; never reset at IST midnight
 
 ## 0. Current activation state (2026-11-19)
-Site discovery is ENABLED in research-only mode. Every 15-minute maintenance run launches headless Chromium through Playwright, searches public DuckDuckGo, Bing, and Google result pages using the configured broad fundraising/community queries, opens a bounded set of candidate pages, and inspects accessible public pages for relevant information and links to official rules/submission pages. Unverified leads are recorded in `state/discovery_leads.json` and included in the health artifact. Browser challenges, CAPTCHAs, login walls, access-denied responses, and rate limits are skipped; no bypass or fallback scraping is attempted. Search results remain research leads only and never become approved destinations automatically. The initial curated queue is `discovery_candidates.csv`. Search failures or access blocks are skipped and logged; no CAPTCHA or access-control bypass is attempted. Search results are leads only and never become approved destinations automatically. The root `sites.csv` is currently header-only and `publishing/adapters/` contains no executable site adapter, so live publishing MUST remain disabled until each destination has current evidence-backed permission and a tested dedicated adapter.
+Site discovery is ENABLED in research-only mode. Every 15-minute maintenance run launches headless Chromium through Playwright, searches public DuckDuckGo, Bing, Google, Mojeek, and Startpage result pages using the configured crypto-donation and image-submission queries, opens a bounded set of candidate pages, and inspects accessible public pages for relevant information and links to official rules/submission pages. Unverified leads are recorded in `state/discovery_leads.json` and included in the health artifact. Browser challenges, CAPTCHAs, login walls, access-denied responses, and rate limits are skipped; no bypass or fallback scraping is attempted. Search results remain research leads only and never become approved destinations automatically. The initial curated queue is `discovery_candidates.csv`. Search failures or access blocks are skipped and logged; no CAPTCHA or access-control bypass is attempted. Search results are leads only and never become approved destinations automatically. The root `sites.csv` is currently header-only and `publishing/adapters/` contains no executable site adapter, so live publishing MUST remain disabled until each destination has current evidence-backed permission and a tested dedicated adapter.
 
 The permission gate requires an explicit automation permission, HTTPS submission/rules/evidence URLs, exact submission-host match, a review date no older than 30 days, an explicit permitted method, a daily limit from 1 to 10, and a dedicated `publishing.adapters.*` adapter class. A plain “allowed” field is not sufficient.
 
@@ -26,7 +26,7 @@ Every maintenance run must:
 9. Persist state and emit machine-readable health and human-readable run summaries.
 10. Append new diagnosis, repair, test evidence, and outcome to the repair log.
 
-The current baseline does not have a publishing adapter. Therefore, it only validates assets and prepares records; it does not claim to publish.
+The current baseline has no verified publishing adapter. It validates the 15 existing images and wallet file, discovers candidate sites, and prepares records only; it does not claim to publish until an eligible site-specific adapter is installed and verified.
 
 ## 2. Watchdog and recovery
 - `.github/workflows/maya-maintenance.yml` runs every 15 minutes.
@@ -69,7 +69,7 @@ These rules are mandatory for every draft, queue item, preview, and publication.
 
 - **Wallet addresses:** Read the three receiving addresses only from the repository's existing `wallets.json`. Treat that file as immutable campaign data. Never type an address from memory, copy it from chat, derive it, normalize it, shorten it, reformat it, or substitute another address. Never create a fallback address. If the file is missing, malformed, or has unexpected keys/values, stop and report the exact validation error. Any proposed wallet change requires explicit owner approval and a separately reviewed repository change; no automatic repair may touch it.
 - **Images:** Use only the existing, checked-in image files in `images/`. Use the original file bytes and the exact repository path. Do not generate, source, draw, replace, edit, crop, recolor, compress, watermark, or otherwise transform images. Do not create new campaign images or add external image URLs. Rotate only among the existing repository assets; record the selected path and SHA-256 with every prepared record. If an image is missing, unreadable, or changed unexpectedly, stop and report it rather than replacing it.
-- **Campaign wording:** Use only campaign facts, approved wording, beneficiary details, and calls to action that already exist in the repository's approved campaign source files. Do not invent beneficiaries, student stories, impact claims, urgency, outcomes, statistics, or new campaign angles. If no approved source wording exists for a proposed post, do not draft or publish that post; report the missing source.
+- **Publication payload (owner instruction, 2026-11-19):** Use only the original checked-in fundraising image and the receiving cryptocurrency wallet addresses loaded directly from `wallets.json`. Do not add campaign descriptions, generated captions, hashtags, stories, claims, statistics, urgency, or promotional copy. If a destination requires additional text, skip that destination unless its required text is already part of the original image and the site explicitly permits the image-plus-wallet payload.
 - **No chat-derived campaign data:** Chat messages, model memory, website text, and generated suggestions are not sources of truth for wallet addresses, images, or campaign claims.
 - **Audit requirement:** Every prepared/publication record must identify the exact repository image path and SHA-256, and confirm that wallet values were loaded from `wallets.json`. Never include private keys or seed phrases.
 
