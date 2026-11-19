@@ -1,10 +1,15 @@
 # Maya Operations & Self-Repair Manual
 
-Version: 1.1
+Version: 1.2
 Owner: Maya project
 Clock: Asia/Kolkata (IST)
 Daily verified-publication target: 666
 Lifetime target: tracked cumulatively; never reset at IST midnight
+
+## 0. Current activation state (2026-11-19)
+The runtime now enforces `publishing/permission_gate.py` and reads the expanded root `sites.csv` registry. The registry is currently header-only, and `publishing/adapters/` contains no executable site adapter. Therefore there are zero eligible publishing destinations and publishing MUST remain idle. Do not flip the live publishing flag until at least one destination has current, evidence-backed permission and its dedicated adapter passes tests and review.
+
+The permission gate requires an explicit automation permission, HTTPS submission/rules/evidence URLs, exact submission-host match, a review date no older than 30 days, an explicit permitted method, a daily limit from 1 to 10, and a dedicated `publishing.adapters.*` adapter class. A plain “allowed” field is not sufficient.
 
 ## 1. Mandatory run protocol
 Before doing any work, the runtime MUST read this manual and the machine-readable `config.json`. If either is missing, unreadable, or invalid, stop queue preparation and mark the run degraded/blocked. Never guess a policy or silently replace campaign data.
