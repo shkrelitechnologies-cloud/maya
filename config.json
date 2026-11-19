@@ -40,6 +40,15 @@
     "require_official_source": true,
     "auto_register_sites": false,
     "auto_publish": false,
-    "skip_blocked_destinations": true
+    "skip_blocked_destinations": true,
+    "search_provider": "bing_rss",
+    "search_timeout_seconds": 8,
+    "max_results_per_query": 8,
+    "max_stored_leads": 100,
+    "queries": [
+      "India nonprofit fundraising platform start fundraiser official eligibility",
+      "India NGO campaign submission fundraising platform official terms",
+      "community website submit existing fundraiser charity guidelines"
+    ]
   }
 }
