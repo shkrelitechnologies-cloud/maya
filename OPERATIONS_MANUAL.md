@@ -7,7 +7,7 @@ Daily verified-publication target: 666
 Lifetime target: tracked cumulatively; never reset at IST midnight
 
 ## 0. Current activation state (2026-11-19)
-The runtime now enforces `publishing/permission_gate.py` and reads the expanded root `sites.csv` registry. The registry is currently header-only, and `publishing/adapters/` contains no executable site adapter. Therefore there are zero eligible publishing destinations and publishing MUST remain idle. Do not flip the live publishing flag until at least one destination has current, evidence-backed permission and its dedicated adapter passes tests and review.
+Site discovery is ENABLED in research-only mode. Every 15-minute maintenance run queries the public Bing RSS search endpoint using the configured fundraising/community queries, records unverified leads in `state/discovery_leads.json`, and reports them in its health artifact. The initial curated queue is `discovery_candidates.csv`. Search failures or access blocks are skipped and logged; no CAPTCHA or access-control bypass is attempted. Search results are leads only and never become approved destinations automatically. The root `sites.csv` is currently header-only and `publishing/adapters/` contains no executable site adapter, so live publishing MUST remain disabled until each destination has current evidence-backed permission and a tested dedicated adapter.
 
 The permission gate requires an explicit automation permission, HTTPS submission/rules/evidence URLs, exact submission-host match, a review date no older than 30 days, an explicit permitted method, a daily limit from 1 to 10, and a dedicated `publishing.adapters.*` adapter class. A plain “allowed” field is not sufficient.
 
@@ -17,7 +17,7 @@ Before doing any work, the runtime MUST read this manual and the machine-readabl
 Every maintenance run must:
 1. Use the workflow's single-run concurrency lock.
 2. Read this manual, configuration, site registry, wallet file, image directory, persistent state, and repair log.
-3. Validate campaign assets and each site's documented automation permission before considering it eligible.
+3. Run research-only website discovery, record candidate URLs as unverified leads, and validate campaign assets and each site's documented automation permission before considering it eligible.
 4. Run syntax/smoke checks before any future adapter can submit.
 5. Reconcile verifiable submission receipts against daily and lifetime ledgers.
 6. Prepare only eligible work; use reviewed site-specific adapters only.
