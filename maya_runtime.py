@@ -17,6 +17,7 @@ from zoneinfo import ZoneInfo
 
 from operations_ledger import append_event, rebuild_summary
 from publishing.permission_gate import load_verified_permissions
+from publishing.discovery import run_research_discovery
 
 ROOT = Path(__file__).resolve().parent
 TZ = ZoneInfo("Asia/Kolkata")
@@ -181,6 +182,7 @@ def main():
                      message="Maya maintenance run started; publishing remains disabled.")
         config, target, wallets, images, eligible, errors, warnings = validate()
         discovery = load_discovery_candidates(config)
+        discovery["web_search"] = run_research_discovery(config.get("site_discovery", {}), ROOT / "state")
         if discovery.get("warning"):
             warnings.append(discovery["warning"])
         state = load_json(state_path, {})
