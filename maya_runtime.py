@@ -16,6 +16,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from operations_ledger import append_event, rebuild_summary
+from publishing.permission_gate import load_verified_permissions
 
 ROOT = Path(__file__).resolve().parent
 TZ = ZoneInfo("Asia/Kolkata")
@@ -79,18 +80,22 @@ def validate():
                 errors.append(f"Empty image file: {p.name}")
 
     eligible = []
+    permission_skips = []
     sites_path = ROOT / "sites.csv"
     if sites_path.exists():
-        with sites_path.open(newline="", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
-            required = {"site_name", "submission_url", "rules_url", "language",
-                        "fundraising_allowed", "reviewed_on", "notes"}
-            if not required.issubset(set(reader.fieldnames or [])):
-                errors.append("sites.csv is missing required columns")
-            else:
-                for row in reader:
-                    if row.get("fundraising_allowed", "").strip().lower() == "allowed":
-                        eligible.append(row)
+        permissions, permission_skips = load_verified_permissions(sites_path, today=now_ist().date())
+        eligible = [{
+            "site_name": p.site_name,
+            "submission_url": p.submission_url,
+            "rules_url": p.rules_url,
+            "language": p.language,
+            "domain": p.domain,
+            "permitted_method": p.permitted_method,
+            "daily_limit": p.daily_limit,
+            "evidence_url": p.evidence_url,
+            "reviewed_on": p.reviewed_on.isoformat(),
+        } for p in permissions]
+        warnings.extend(permission_skips)
     else:
         warnings.append("sites.csv not found; no sites are eligible")
 
@@ -211,6 +216,7 @@ def main():
             "images_found": len(images),
             "image_rotation_cursor": state.get("image_rotation_cursor", 0),
             "eligible_registry_rows": len(eligible),
+            "permission_gate_skips": permission_skips,
             "prepared_records": len(queue),
             "published_by_this_runtime": 0,
             "errors": errors,
