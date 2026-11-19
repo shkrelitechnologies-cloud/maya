@@ -30,6 +30,8 @@ SEARCH_ENGINES = {
     "bing": "https://www.bing.com/search?q={query}",
     "google": "https://www.google.com/search?q={query}",
     "mojeek": "https://www.mojeek.com/search?q={query}",
+    "yahoo": "https://search.yahoo.com/search?p={query}",
+    "mojeek": "https://www.mojeek.com/search?q={query}",
     "startpage": "https://www.startpage.com/sp/search?query={query}",
 }
 
