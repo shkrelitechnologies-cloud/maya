@@ -2,6 +2,11 @@
 
 This directory is Maya's repository-local audit trail. It is the source of truth for events emitted by the runtime; the separate MIND repository is not required.
 
+## Publishing status
+The runtime now calls `publishing.permission_gate.load_verified_permissions` before preparing any site queue. The current `sites.csv` has headers only, and there are no executable adapters. Expected eligible destinations: zero. Do not treat prepared records as published or enable live publishing until each destination has evidence-backed permission and a tested dedicated adapter.
+
+This directory is Maya's repository-local audit trail. It is the source of truth for events emitted by the runtime; the separate MIND repository is not required.
+
 ## Files
 
 - `OPERATIONS_LEDGER.csv`: append-only event history. Prepared queue items and maintenance runs are recorded but never counted as publications.
