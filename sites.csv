@@ -1,1 +1,1 @@
-site_name,domain,submission_url,rules_url,language,automation_allowed,permitted_method,daily_limit,reviewed_on,evidence_url,adapter_module,adapter_class,notes
+site_name,domain,submission_url,rules_url,language,fundraising_allowed,automation_allowed,permitted_method,daily_limit,reviewed_on,evidence_url,adapter_module,adapter_class,notes
