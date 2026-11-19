@@ -19,8 +19,8 @@ class DiscoveryTests(unittest.TestCase):
         self.assertEqual(rows[0]["automation_permission"], "NOT_VERIFIED")
 
     def test_merge_deduplicates_urls(self):
-        old = [{"url": "https://example.org/submit", "last_seen_utc": "old"}]
-        new = [{"url": "https://example.org/submit", "last_seen_utc": "new"}]
+        old = [{"url": "https://example.org/submit", "title": "fundraising site", "last_seen_utc": "old"}]
+        new = [{"url": "https://example.org/submit", "title": "fundraising site", "last_seen_utc": "new"}]
         merged = merge_leads(old, new)
         self.assertEqual(len(merged), 1)
         self.assertEqual(merged[0]["last_seen_utc"], "new")
