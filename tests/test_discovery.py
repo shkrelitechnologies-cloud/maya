@@ -6,7 +6,7 @@ from publishing.discovery import merge_leads, parse_rss
 RSS = b"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"><channel>
 <item><title>Fundraising submission guidelines</title><link>https://example.org/submit</link><description>Official\n guidelines</description></item>
-<item><title>Invalid link</title><link>javascript:alert(1)</link><description>ignore</description></item>
+<item><title>India facts</title><link>https://example.org/india</link><description>Country facts only</description></item>\n<item><title>Invalid link</title><link>javascript:alert(1)</link><description>fundraising</description></item>
 </channel></rss>"""
 
 
