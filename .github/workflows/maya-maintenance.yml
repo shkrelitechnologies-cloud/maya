@@ -11,6 +11,7 @@ on:
       - maya_runtime.py
       - publishing/**
       - sites.csv
+      - discovery_candidates.csv
       - tests/**
       - operations_ledger.py
       - config.json
