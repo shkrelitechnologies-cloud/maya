@@ -89,3 +89,6 @@ Every run must report run ID, IST timestamp, health state, daily verified count/
 
 ## 9. Change control
 The bot may append dated, evidence-backed lessons and link a reviewed fix. It must not silently rewrite core safety, permission, or counting rules. Any change to core rules requires owner approval and a versioned change note.
+
+## Operator shorthand: `666`
+When the operator requests `666`, include Maya in the four-project audit (COCO, HUNTER, MAYA, SHIV). Read `operations/DAILY_SUMMARY.csv` and reconcile its current IST row with `operations/OPERATIONS_LEDGER.csv`; report verified unique publications / 666, remaining target, separate prepared/attempted/pending/rejected/failed/blocked/skipped counts, and required throughput to midnight IST. Never interpret a successful maintenance run, research lead, or prepared queue item as a publication. If the ledger is unavailable or inconsistent, report the count as **unverifiable**, not zero. Maya's current publishing-disabled state must remain visible until approved site-specific adapters are installed and verified.
