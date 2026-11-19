@@ -18,7 +18,8 @@ from urllib.parse import quote_plus, urlparse, urlunparse
 
 RELEVANT_TERMS = (
     "fundrais", "crowdfund", "donat", "charit", "nonprofit", "non-profit",
-    "ngo", "campaign", "giving", "social cause", "funding appeal",
+    "ngo", "campaign", "giving", "social cause", "funding appeal", "cryptocurrency",
+    "crypto donation", "bitcoin", "ethereum", "wallet", "digital asset", "web3",
 )
 BLOCK_MARKERS = (
     "captcha", "verify you are human", "unusual traffic", "access denied",
@@ -28,6 +29,8 @@ SEARCH_ENGINES = {
     "duckduckgo": "https://html.duckduckgo.com/html/?q={query}",
     "bing": "https://www.bing.com/search?q={query}",
     "google": "https://www.google.com/search?q={query}",
+    "mojeek": "https://www.mojeek.com/search?q={query}",
+    "startpage": "https://www.startpage.com/sp/search?query={query}",
 }
 
 
@@ -102,7 +105,7 @@ def _search_links(page, engine: str, query: str, timeout_ms: int) -> tuple[list[
         for item in links:
             clean = _clean_url(item.get("url", ""))
             host = urlparse(clean).hostname or ""
-            if not clean or host.endswith(("duckduckgo.com", "bing.com", "google.com")):
+            if not clean or host.endswith(("duckduckgo.com", "bing.com", "google.com", "mojeek.com", "startpage.com")):
                 continue
             title_text = item.get("title", "")
             snippet = item.get("snippet", "")
