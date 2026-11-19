@@ -3,7 +3,7 @@
 Maya is a repository-owned campaign operations project. It validates campaign assets, maintains an IST ledger, monitors its GitHub Actions maintenance workflow, and now runs site discovery in **research-only mode**.
 
 ## Site discovery: ENABLED
-The 15-minute maintenance workflow now runs free Bing RSS searches for fundraising/community destinations and stores unverified web leads in `state/discovery_leads.json`. It also reads `discovery_candidates.csv`, currently seeded with seven research leads including Raisemore, India Giving Day, CHANCES.org, Ketto, Milaap, ImpactGuru and Give.do. Search results are leads only—not permission to publish.
+The 15-minute maintenance workflow launches headless Chromium using Playwright and searches public DuckDuckGo, Bing, and Google result pages across configured fundraising/community queries. It opens a bounded set of candidate pages, inspects publicly accessible content, and collects links to official terms, eligibility, FAQ, and submission pages. Unverified leads are stored in `state/discovery_leads.json`; it also reads `discovery_candidates.csv`, seeded with seven initial research leads. CAPTCHA/challenge, login, access-denied, and rate-limited pages are skipped without bypass. Search results are leads only—not permission to publish.
 
 ## Live publishing: DISABLED
 The root `sites.csv` is an empty permission registry and no executable site-specific adapter is installed. Maya must not submit anything until current official rules or written authorization permit the exact automated fundraising method and a dedicated adapter is tested. CAPTCHA, login walls, permission barriers, rate limits, moderation blocks, and policy ambiguity must be skipped; never bypass them. See `publishing/README.md`.
