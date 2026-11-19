@@ -64,6 +64,14 @@ Every repair must be logged with IST timestamp, symptom, root cause, exact files
 Never automatically alter wallet addresses, campaign claims, beneficiary details, source images, site rules, authentication, or publication content in response to an uncertain error. Never auto-edit executable code based only on an error message or untrusted website response. Code changes require a proposed patch, tests, static checks, diff inspection, and authorized review before production use.
 
 ## 6. Immutable campaign source-of-truth rules
+## 6A. Owner-approved campaign payload format
+
+The owner has specified that Maya's campaign payload is limited to:
+- One original, unchanged image selected from `images/`.
+- The existing Bitcoin, Ethereum and Solana receiving addresses loaded directly from `wallets.json`.
+
+Do not add campaign stories, beneficiary claims, statistics, urgency, captions, promotional copy, QR codes, extra wallet addresses, or generated wording. Use only the image and wallet values. A destination must support this exact image-plus-wallet format and explicitly permit the intended automated publication method. If it requires additional text, a hosted fundraiser, account verification, or a different payment flow, mark it unsuitable and move to the next candidate. This content-format rule does not grant publication permission.
+
 
 These rules are mandatory for every draft, queue item, preview, and publication.
 
