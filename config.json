@@ -31,5 +31,15 @@
     "drafts_count": false,
     "attempts_count": false,
     "failed_submissions_count": false
+  },
+  "site_discovery": {
+    "enabled": true,
+    "mode": "research_only",
+    "candidate_registry": "discovery_candidates.csv",
+    "refresh_minutes": 15,
+    "require_official_source": true,
+    "auto_register_sites": false,
+    "auto_publish": false,
+    "skip_blocked_destinations": true
   }
 }
