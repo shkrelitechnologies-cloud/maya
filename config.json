@@ -2,8 +2,8 @@
   "project": "Maya",
   "timezone": "Asia/Kolkata",
   "daily_success_target": 666,
-  "schedule_minutes": 15,
-  "watchdog_schedule_minutes": 15,
+  "schedule_minutes": 5,
+  "watchdog_schedule_minutes": 5,
   "image_rotation": "sequential",
   "publishing_mode": "disabled_until_site_specific_permission_and_adapter_verification",
   "auto_recovery": {
@@ -43,7 +43,7 @@
     "skip_blocked_destinations": true,
     "search_provider": "playwright_chromium",
     "search_timeout_seconds": 12,
-    "max_results_per_query": 12,
+    "max_results_per_query": 20,
     "max_stored_leads": 500,
     "queries": [
       "crypto donation fundraising website submit image bitcoin ethereum wallet official rules",
@@ -66,7 +66,7 @@
       "mojeek",
       "yahoo"
     ],
-    "browser_timeout_seconds": 6,
-    "max_pages_per_run": 30
+    "browser_timeout_seconds": 12,
+    "max_pages_per_run": 40
   }
 }
