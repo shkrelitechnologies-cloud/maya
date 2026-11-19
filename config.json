@@ -57,7 +57,19 @@
       "crypto donation fundraising platforms for nonprofit bitcoin ethereum solana official submission rules",
       "charity cryptocurrency donation page submit organization bitcoin donation official guidelines",
       "image based fundraising campaign listing cryptocurrency donations official terms",
-      "community fundraising sites accept bitcoin wallet donation links submit campaign"
+      "community fundraising sites accept bitcoin wallet donation links submit campaign",
+      "募捐 网站 提交 链接 公益 官方规则",
+      "donación benéfica enviar campaña reglas oficiales",
+      "collecte de fonds soumettre campagne règles officielles",
+      "Spendenaktion Kampagne einreichen offizielle Richtlinien",
+      "doação beneficente enviar campanha regras oficiais",
+      "raccolta fondi invia campagna regole ufficiali",
+      "募金 キャンペーン 投稿 利用規約",
+      "기부 모금 캠페인 제출 운영 정책",
+      "التبرع جمع التبرعات إرسال حملة القواعد الرسمية",
+      "दान अभियान जमा करने के नियम आधिकारिक",
+      "সংগ্রহ অভিযান জমা দেওয়ার নিয়ম",
+      "penggalangan dana kirim kampanye aturan resmi"
     ],
     "search_engines": [
       "duckduckgo",
@@ -67,6 +79,6 @@
       "yahoo"
     ],
     "browser_timeout_seconds": 6,
-    "max_pages_per_run": 30
+    "max_pages_per_run": 40
   }
 }
