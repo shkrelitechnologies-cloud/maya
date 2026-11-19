@@ -9,6 +9,9 @@ on:
     paths:
       - maya.py
       - maya_runtime.py
+      - publishing/**
+      - sites.csv
+      - tests/**
       - operations_ledger.py
       - config.json
       - OPERATIONS_MANUAL.md
@@ -39,7 +42,8 @@ jobs:
           python-version: "3.12"
       - name: Validate source, config and whitespace
         run: |
-          python -m py_compile maya.py maya_runtime.py operations_ledger.py .github/scripts/watchdog.py
+          python -m py_compile maya.py maya_runtime.py publishing/permission_gate.py operations_ledger.py .github/scripts/watchdog.py
+          python -m unittest discover -s tests -v
           python -m json.tool config.json > /dev/null
           git diff --check
       - name: Restore persistent operational state
