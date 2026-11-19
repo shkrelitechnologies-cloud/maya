@@ -137,6 +137,38 @@ def write_csv(path, rows):
     tmp.replace(path)
 
 
+
+def load_discovery_candidates(config):
+    """Read the research-only candidate queue; never treats candidates as approved sites."""
+    settings = config.get("site_discovery", {}) if isinstance(config, dict) else {}
+    if not settings.get("enabled", False):
+        return {"enabled": False, "mode": "disabled", "candidate_count": 0, "candidates": []}
+    registry = ROOT / str(settings.get("candidate_registry", "discovery_candidates.csv"))
+    required = {"candidate_name", "website", "official_rules_or_submission_url",
+                "fit", "submission_type", "automation_permission", "status",
+                "last_checked_ist", "notes"}
+    if not registry.is_file():
+        return {"enabled": True, "mode": "research_only", "candidate_count": 0,
+                "candidates": [], "warning": "Discovery candidate registry missing"}
+    with registry.open(newline="", encoding="utf-8-sig") as handle:
+        reader = csv.DictReader(handle)
+        if not required.issubset(set(reader.fieldnames or [])):
+            return {"enabled": True, "mode": "research_only", "candidate_count": 0,
+                    "candidates": [], "warning": "Discovery candidate registry missing required columns"}
+        candidates = []
+        for row in reader:
+            if row.get("status", "").strip() != "RESEARCH_ONLY":
+                continue
+            candidates.append({
+                "candidate_name": row["candidate_name"].strip(),
+                "website": row["website"].strip(),
+                "official_rules_or_submission_url": row["official_rules_or_submission_url"].strip(),
+                "automation_permission": row["automation_permission"].strip(),
+                "status": "RESEARCH_ONLY",
+            })
+    return {"enabled": True, "mode": "research_only",
+            "candidate_count": len(candidates), "candidates": candidates}
+
 def main():
     stamp = now_ist()
     day_key = stamp.strftime("%Y-%m-%d")
@@ -148,6 +180,9 @@ def main():
         append_event(ROOT, event_type="run", status="run_started",
                      message="Maya maintenance run started; publishing remains disabled.")
         config, target, wallets, images, eligible, errors, warnings = validate()
+        discovery = load_discovery_candidates(config)
+        if discovery.get("warning"):
+            warnings.append(discovery["warning"])
         state = load_json(state_path, {})
         if not isinstance(state, dict):
             errors.append("daily_state.json is not a JSON object; preserved and fail-closed")
@@ -216,12 +251,13 @@ def main():
             "images_found": len(images),
             "image_rotation_cursor": state.get("image_rotation_cursor", 0),
             "eligible_registry_rows": len(eligible),
+            "site_discovery": discovery,
             "permission_gate_skips": warnings,
             "prepared_records": len(queue),
             "published_by_this_runtime": 0,
             "errors": errors,
             "warnings": warnings,
-            "publishing": "DISABLED: no verified site-specific permitted adapter is configured",
+            "publishing": "DISABLED: discovery mode only; no verified site-specific permitted adapter is configured",
             "manual_checked": (ROOT / "OPERATIONS_MANUAL.md").is_file(),
             "repair_log_checked": (ROOT / "SELF_REPAIR_LOG.md").is_file(),
             "state_persistence": "GitHub Actions cache restore/save plus run artifacts; live continuity must be verified",
