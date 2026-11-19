@@ -216,7 +216,7 @@ def main():
             "images_found": len(images),
             "image_rotation_cursor": state.get("image_rotation_cursor", 0),
             "eligible_registry_rows": len(eligible),
-            "permission_gate_skips": permission_skips,
+            "permission_gate_skips": warnings,
             "prepared_records": len(queue),
             "published_by_this_runtime": 0,
             "errors": errors,
