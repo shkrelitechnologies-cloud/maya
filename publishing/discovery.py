@@ -26,6 +26,12 @@ def parse_rss(xml_bytes: bytes, query: str, seen_at: str, limit: int = 8) -> lis
         description = (item.findtext("description") or "").strip()
         if not title or not link:
             continue
+        relevance_text = (title + " " + description).lower()
+        relevant_terms = ("fundrais", "crowdfund", "donat", "charit", "nonprofit",
+                          "non-profit", "ngo", "campaign", "giving", "social cause",
+                          "submit a fundraiser", "funding appeal")
+        if not any(term in relevance_text for term in relevant_terms):
+            continue
         parsed = urlparse(link)
         if parsed.scheme not in {"http", "https"} or not parsed.hostname:
             continue
@@ -46,9 +52,12 @@ def parse_rss(xml_bytes: bytes, query: str, seen_at: str, limit: int = 8) -> lis
 
 def merge_leads(existing: list[dict], discovered: list[dict], limit: int = 100) -> list[dict]:
     by_url = {}
+    relevant_terms = ("fundrais", "crowdfund", "donat", "charit", "nonprofit",
+                      "non-profit", "ngo", "campaign", "giving", "social cause")
     for lead in existing + discovered:
         url = lead.get("url", "").strip()
-        if not url:
+        relevance_text = (lead.get("title", "") + " " + lead.get("snippet", "")).lower()
+        if not url or not any(term in relevance_text for term in relevant_terms):
             continue
         if url in by_url:
             by_url[url]["last_seen_utc"] = lead.get("last_seen_utc", by_url[url].get("last_seen_utc", ""))
