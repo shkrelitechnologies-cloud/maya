@@ -42,7 +42,7 @@
     "auto_publish": false,
     "skip_blocked_destinations": true,
     "search_provider": "playwright_chromium",
-    "search_timeout_seconds": 8,
+    "search_timeout_seconds": 6,
     "max_results_per_query": 20,
     "max_stored_leads": 500,
     "queries": [
@@ -62,9 +62,11 @@
     "search_engines": [
       "duckduckgo",
       "bing",
-      "mojeek"
+      "google",
+      "mojeek",
+      "yahoo"
     ],
-    "browser_timeout_seconds": 8,
-    "max_pages_per_run": 20
+    "browser_timeout_seconds": 6,
+    "max_pages_per_run": 30
   }
 }
