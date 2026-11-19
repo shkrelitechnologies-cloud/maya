@@ -2,6 +2,11 @@
 
 Maya is a repository-owned campaign operations project. It validates campaign assets, prepares a deterministic image-rotating queue, maintains an IST ledger, and monitors its own GitHub Actions maintenance workflow.
 
+## Publishing activation state
+The runtime now enforces `publishing/permission_gate.py`. The root `sites.csv` is currently an empty registry and no executable site-specific adapter is installed. Maya is therefore NOT a live publisher yet. The new gate requires current official permission evidence, a recent review, a bounded daily limit, and a dedicated adapter for each destination. CAPTCHA, login walls, permission barriers, rate limits, moderation blocks, and policy ambiguity must be skipped; never bypass them. See `publishing/README.md`.
+
+Maya is a repository-owned campaign operations project. It validates campaign assets, prepares a deterministic image-rotating queue, maintains an IST ledger, and monitors its own GitHub Actions maintenance workflow.
+
 ## Current verified assets
 - Campaign images: stored in `images/` (the baseline contains 15 PNG images; the runtime counts supported image files at execution time).
 - Fixed public receiving addresses: `wallets.json`.
