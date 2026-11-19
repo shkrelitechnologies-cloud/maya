@@ -41,14 +41,26 @@
     "auto_register_sites": false,
     "auto_publish": false,
     "skip_blocked_destinations": true,
-    "search_provider": "bing_rss",
+    "search_provider": "playwright_chromium",
     "search_timeout_seconds": 8,
     "max_results_per_query": 8,
-    "max_stored_leads": 100,
+    "max_stored_leads": 150,
     "queries": [
-      "India nonprofit fundraising platform start fundraiser official eligibility",
-      "India NGO campaign submission fundraising platform official terms",
-      "community website submit existing fundraiser charity guidelines"
-    ]
+      "India NGO fundraising platforms submit campaign official eligibility guidelines",
+      "India charity fundraiser submission websites community donation campaigns",
+      "global nonprofit fundraising platforms submit fundraiser campaign official rules",
+      "college student education medical emergency crowdfunding India platform eligibility",
+      "community fundraising charity campaign directory submit fundraiser guidelines",
+      "nonprofit donation campaign listing submit organization official policy",
+      "fundraising websites for individuals NGOs India official terms",
+      "charity fundraising community websites campaign submission guidelines"
+    ],
+    "search_engines": [
+      "duckduckgo",
+      "bing",
+      "google"
+    ],
+    "browser_timeout_seconds": 12,
+    "max_pages_per_run": 18
   }
 }
