@@ -63,7 +63,7 @@ def parse_rss(xml_bytes: bytes, query: str, seen_at: str, limit: int = 8) -> lis
             "domain": urlparse(link).hostname.lower(),
             "source_query": query[:300], "first_seen_utc": seen_at,
             "last_seen_utc": seen_at, "verification_status": "UNVERIFIED_RESEARCH_LEAD",
-            "snippet": re.sub(r"\\s+", " ", description)[:700],
+            "snippet": re.sub(r"\s+", " ", description)[:700],
             "automation_permission": "NOT_VERIFIED",
         })
     return found
@@ -142,7 +142,7 @@ def _inspect_candidate(page, candidate: dict, query: str, seen_at: str, timeout_
             "source_query": query[:300],
             "first_seen_utc": seen_at,
             "last_seen_utc": seen_at,
-            "snippet": re.sub(r"\\s+", " ", description or body[:700])[:700],
+            "snippet": re.sub(r"\s+", " ", description or body[:700])[:700],
             "official_page_inspected": True,
             "rules_or_submission_links": rule_links,
             "verification_status": "UNVERIFIED_RESEARCH_LEAD",
@@ -215,7 +215,7 @@ def run_research_discovery(settings: dict, state_dir: Path) -> dict:
 
     merged = merge_leads(existing, discovered, max_leads)
     temp = leads_path.with_suffix(".json.tmp")
-    temp.write_text(json.dumps(merged, indent=2, ensure_ascii=False) + "\\n", encoding="utf-8")
+    temp.write_text(json.dumps(merged, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     temp.replace(leads_path)
     return {
         "enabled": True, "provider": "playwright_chromium",
