@@ -3,7 +3,7 @@
 Maya is a repository-owned campaign operations project. It validates campaign assets, maintains an IST ledger, monitors its GitHub Actions maintenance workflow, and now runs site discovery in **research-only mode**.
 
 ## Site discovery: ENABLED
-The 15-minute maintenance workflow reads `discovery_candidates.csv` and reports research leads in its health artifact. Candidates are not treated as permission to publish. The initial researched leads include Raisemore, India Giving Day, and CHANCES.org, each with a source URL and a stated eligibility caveat.
+The 15-minute maintenance workflow now runs free Bing RSS searches for fundraising/community destinations and stores unverified web leads in `state/discovery_leads.json`. It also reads `discovery_candidates.csv`, currently seeded with seven research leads including Raisemore, India Giving Day, CHANCES.org, Ketto, Milaap, ImpactGuru and Give.do. Search results are leads only—not permission to publish.
 
 ## Live publishing: DISABLED
 The root `sites.csv` is an empty permission registry and no executable site-specific adapter is installed. Maya must not submit anything until current official rules or written authorization permit the exact automated fundraising method and a dedicated adapter is tested. CAPTCHA, login walls, permission barriers, rate limits, moderation blocks, and policy ambiguity must be skipped; never bypass them. See `publishing/README.md`.
