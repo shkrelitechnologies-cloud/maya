@@ -92,3 +92,16 @@ The bot may append dated, evidence-backed lessons and link a reviewed fix. It mu
 
 ## Operator shorthand: `666`
 When the operator requests `666`, include Maya in the four-project audit (COCO, HUNTER, MAYA, SHIV). Read `operations/DAILY_SUMMARY.csv` and reconcile its current IST row with `operations/OPERATIONS_LEDGER.csv`; report verified unique publications / 666, remaining target, separate prepared/attempted/pending/rejected/failed/blocked/skipped counts, and required throughput to midnight IST. Never interpret a successful maintenance run, research lead, or prepared queue item as a publication. If the ledger is unavailable or inconsistent, report the count as **unverifiable**, not zero. Maya's current publishing-disabled state must remain visible until approved site-specific adapters are installed and verified.
+
+**Local audit command:** `python ops_666.py` (read-only, ledger-first).
+
+## Operational reference
+- **Purpose:** Campaign asset validation, research-only discovery, queue preparation, IST ledger maintenance, and guarded health monitoring. Live publishing remains disabled until verified permission + dedicated adapter exists.
+- **Entry points/workflows:** `.github/workflows/maya-maintenance.yml` (every 5/15-min schedule per config/workflow, `workflow_dispatch`), `.github/workflows/maya-watchdog.yml` (recovery/health). Runtime: `maya_runtime.py`; queue helper: `maya.py`; ledgers: `operations_ledger.py`.
+- **Daily target/reset:** 666 verified unique publications/day; IST (`Asia/Kolkata`) 00:00 reset; history retained in state and ledgers.
+- **Configuration/credentials:** `config.json`, `sites.csv` permission registry, `wallets.json` (public receiving addresses only), `images/`. No publishing credentials/secrets committed.
+- **Ledgers/queues:** `operations/OPERATIONS_LEDGER.csv`, `operations/DAILY_SUMMARY.csv`, `submission_queue.csv`, `state/daily_state.json`, `state/health.json`, discovery state/leads.
+- **Verification:** Only `published_verified` events with public URL + evidence/readback may count (none in current disabled mode). Prepared/attempted/failed/pending do not count.
+- **Error handling:** Permission gate fail-closed; skip CAPTCHA/login/permission/rate-limit/moderation/policy ambiguity; deterministic runtime repairs only as documented; watchdog for stale/missed runs.
+- **Resource limits:** Bounded maintenance runs, caching of runtime state, atomic writes, single concurrency group, capped discovery/search scope.
+- **Manual intervention:** Required to add permission-reviewed sites/adapters, resolve GitHub platform restrictions, or approve campaign/policy changes. Resume via `workflow_dispatch` after fixing blockers.
