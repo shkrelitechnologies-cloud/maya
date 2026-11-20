@@ -3,8 +3,10 @@
 ## Current status: NOT LIVE
 
 This directory is an adapter contract, not a working publisher. There are
-currently no site-specific adapters and the site registry contains no approved
-destinations. Maya must remain in preparation/idle mode until both exist.
+currently no executable site-specific adapters and the site registry contains
+no approved destinations. Maya must remain fail-closed in preparation/research
+mode until both exist. Draft scaffolding/templates, if generated, are review
+artifacts only and must never be treated as installed or permitted adapters.
 
 ## Required for each destination
 
@@ -34,6 +36,8 @@ adapter class are all mandatory.
 
 ## Safety and honest reporting
 
-No adapter is installed by this commit. Do not set Maya to LIVE or count queue
-items as publications. The 666/day value is a goal, not a guarantee. The
-current runtime does not yet invoke this adapter contract.
+No adapter is installed and no site is approved for automated publishing. Do
+not set Maya to LIVE or count queue items as publications. The 666/day value is
+a goal, not a guarantee. Because there are no eligible, verified,
+adapter-backed permissions, the runtime does not invoke adapter preflight,
+submit, or verification paths.

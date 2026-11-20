@@ -1,52 +1,40 @@
 # Maya — College Fundraising Outreach
 
-Maya is a repository-owned campaign operations project. It validates campaign assets, maintains an IST ledger, monitors its GitHub Actions maintenance workflow, and now runs site discovery in **research-only mode**.
+Maya is a repository-owned campaign operations project. It validates campaign assets, performs research-only candidate discovery/assessment, prepares permission-gated queue records, maintains an IST ledger, and reports health through GitHub Actions workflows.
 
-## Site discovery: ENABLED
-The 15-minute maintenance workflow launches headless Chromium using Playwright and searches public DuckDuckGo, Bing, and Google result pages across configured fundraising/community queries. It opens a bounded set of candidate pages, inspects publicly accessible content, and collects links to official terms, eligibility, FAQ, and submission pages. Unverified leads are stored in `state/discovery_leads.json`; it also reads `discovery_candidates.csv`, seeded with seven initial research leads. CAPTCHA/challenge, login, access-denied, and rate-limited pages are skipped without bypass. Search results are leads only—not permission to publish.
+## Site discovery and candidate review: ENABLED (research-only)
+The maintenance runtime can launch headless Chromium with Playwright to search configured public engines using bounded, worldwide/multilingual queries, inspect accessible candidate pages, and capture research-only signals (category/country/language hints, submission-method hints, official rules/submission links, eligibility evidence, status, reasons). Challenges, CAPTCHAs, login/payment/access-control barriers, and rate limits are skipped without bypass.
 
-## Live publishing: DISABLED
-The root `sites.csv` is an empty permission registry and no executable site-specific adapter is installed. Maya must not submit anything until current official rules or written authorization permit the exact automated fundraising method and a dedicated adapter is tested. CAPTCHA, login walls, permission barriers, rate limits, moderation blocks, and policy ambiguity must be skipped; never bypass them. See `publishing/README.md`.
+Discovered leads are stored in `state/discovery_leads.json`. Curated candidates in `discovery_candidates.csv` and web leads are merged into a rich review queue (`state/candidate_review_queue.json` and `state/candidate_review_queue.csv`) with duplicate prevention. Draft eligibility assessment records and draft scaffolding/config templates may be generated under `state/candidate_assessments/` and `state/scaffolding/drafts/` for clearly supported review cases. These are review/testing artifacts only — never permissions, never registered adapters, and never publication evidence.
 
-Maya is a repository-owned campaign operations project. It validates campaign assets, prepares a deterministic image-rotating queue, maintains an IST ledger, and monitors its own GitHub Actions maintenance workflow.
-
-## Publishing activation state
-The runtime now enforces `publishing/permission_gate.py`. The root `sites.csv` is currently an empty registry and no executable site-specific adapter is installed. Maya is therefore NOT a live publisher yet. The new gate requires current official permission evidence, a recent review, a bounded daily limit, and a dedicated adapter for each destination. CAPTCHA, login walls, permission barriers, rate limits, moderation blocks, and policy ambiguity must be skipped; never bypass them. See `publishing/README.md`.
-
-Maya is a repository-owned campaign operations project. It validates campaign assets, prepares a deterministic image-rotating queue, maintains an IST ledger, and monitors its own GitHub Actions maintenance workflow.
-
-## Current verified assets
-- Campaign images: stored in `images/` (the baseline contains 15 PNG images; the runtime counts supported image files at execution time).
-- Fixed public receiving addresses: `wallets.json`.
+## Live publishing: DISABLED (fail-closed)
+## Current assets and components
+- Campaign images: `images/` (existing checked-in assets only; runtime uses supported image files and records path/SHA-256).
+- Public receiving addresses: `wallets.json`.
 - Queue generator: `maya.py`.
 - Maintenance runtime: `maya_runtime.py`.
-- Hourly watchdog: `.github/scripts/watchdog.py`.
-- Runtime configuration: `config.json`.
-- Maintenance workflow: `.github/workflows/maya-maintenance.yml`.
-- Hourly watchdog workflow: `.github/workflows/maya-watchdog.yml`.
+- Permission gate: `publishing/permission_gate.py`.
+- Research-only discovery: `publishing/discovery.py`.
+- Ledgers: `operations/OPERATIONS_LEDGER.csv`, `operations/DAILY_SUMMARY.csv`.
+- Audit command: `ops_666.py` (`python ops_666.py`, read-only, ledger-first).
+- Configuration: `config.json`, `sites.csv`, `discovery_candidates.csv`.
+- Workflows: `.github/workflows/maya-maintenance.yml`, `.github/workflows/maya-watchdog.yml`.
 
 ## Operating clock and target
 - Timezone: `Asia/Kolkata` (IST).
-- Goal: 666 verified successful publications in each IST calendar day.
+- Goal: 666 verified unique publications in each IST calendar day.
 - Daily counter rollover: 00:00 IST; lifetime records are retained.
-- Maintenance workflow: every 15 minutes.
-- Independent workflow watchdog: hourly. It checks the maintenance workflow, attempts to re-enable it if GitHub reports it disabled, and dispatches a recovery run if no successful run completed within 45 minutes and no run is already active.
-- Prepared items, attempts, failures, pending moderation, and unverified receipts never count as successful publications.
+- Prepared items, attempts, failures, pending moderation, discovery leads, and unverified receipts never count as successful publications.
+- Workflow schedules/behavior are defined by the workflow files and GitHub Actions availability; cache/state persistence must be verified from live runs and artifacts.
 
 ## Image rotation
-The runtime assigns images sequentially from `images/` to eligible queue records. Each adjacent record gets the next image; the sequence loops after the available image set. A persistent cursor advances between queue generations and is preserved across IST midnight, so each new queue does not restart at the first image. The CSV includes the selected image path and SHA-256 so the asset used by each prepared record can be audited. This is queue preparation, not proof that an image was posted.
+The runtime assigns images sequentially from `images/` to eligible, permissioned queue records. A persistent cursor advances between queue generations and is preserved across IST midnight. Queue records include image path and SHA-256 for audit. This is preparation only, not proof of posting.
 
 ## What runs unattended
-The 15-minute workflow validates configuration, wallet structure, image availability, registry structure, prepares the queue, writes a health report, and records an IST heartbeat. The hourly watchdog checks recent workflow runs and can safely request one recovery execution. Both preserve run reports as GitHub Actions artifacts.
-
-GitHub Actions runners are ephemeral. The maintenance workflow restores and saves a cache for operational state and uploads artifacts as an audit trail. Cache retention/eviction and workflow execution must be verified from live runs; cache is not a database or an absolute durability guarantee.
+The maintenance workflow validates configuration/assets, enforces the permission gate, runs bounded research-only discovery and candidate assessment, maintains a rich review queue and draft assessment/scaffolding artifacts in `state/` (for review only), prepares queue records only for explicitly eligible permissioned sites, updates health/ledgers, and uploads artifacts. The watchdog checks workflow health and can request bounded recovery actions. Both are limited by GitHub Actions availability/permissions/quotas.
 
 ## Publishing status and important limits
-**Publishing is disabled in this baseline.** The runtime does not submit posts to third-party websites. No generic form-filling, mass unsolicited outreach, CAPTCHA bypass, access-control evasion, moderation evasion, or rate-limit evasion is allowed.
-
-A site-specific adapter may be added only after its current official rules explicitly permit the intended automated fundraising submission and the method is reviewed. Each adapter must enforce per-site limits, deduplicate, stop on blocks or policy uncertainty, and record verifiable publication receipts. The 666 target is an operational goal, not a guarantee.
-
-The watchdog cannot repair GitHub account restrictions, repository-level Actions disablement, revoked permissions, exhausted platform quotas, or an outage that prevents GitHub from starting the watchdog itself. For detection of those platform-wide failures, configure an independent external heartbeat monitor. Never describe the system as error-proof or continuously running unless live evidence supports that claim.
+**Publishing remains disabled/fail-closed.** No generic form-filling, CAPTCHA/login/payment/access-control bypass, moderation/rate-limit evasion, fake permissions, fake adapters, or fake publication/verification records are allowed. A site-specific adapter may be used only after current verified permission and review; counting requires a durable public URL plus separate readback/evidence. The 666 target is an operational goal, not a guarantee.
 
 ## Setup and diagnostics
 1. Keep only truthful, verifiable campaign information and the existing public receiving addresses.

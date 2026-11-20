@@ -1,11 +1,9 @@
 # Maya Operations Ledger
 
-This directory is Maya's repository-local audit trail. It is the source of truth for events emitted by the runtime; the separate MIND repository is not required.
+This directory is Maya's repository-local audit trail. It is the source of truth for events emitted by the runtime.
 
 ## Publishing status
-The runtime now calls `publishing.permission_gate.load_verified_permissions` before preparing any site queue. The current `sites.csv` has headers only, and there are no executable adapters. Expected eligible destinations: zero. Do not treat prepared records as published or enable live publishing until each destination has evidence-backed permission and a tested dedicated adapter.
-
-This directory is Maya's repository-local audit trail. It is the source of truth for events emitted by the runtime; the separate MIND repository is not required.
+The runtime enforces `publishing.permission_gate.load_verified_permissions` before preparing any site queue. The current `sites.csv` has headers only and there are no executable adapters, so eligible publishing destinations are zero. Research-only candidate queues/assessments/scaffolding may be generated in `state/` for review, but they are not permissions, adapters, or publications. Do not treat prepared records as published.
 
 ## Files
 

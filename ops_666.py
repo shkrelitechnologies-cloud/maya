@@ -19,6 +19,22 @@ TZ = timezone(timedelta(hours=5, minutes=30))
 TARGET = 666
 
 
+def permission_registry_status():
+    sites = ROOT / "sites.csv"
+    if not sites.exists():
+        return {"eligible_permission_rows": 0, "status": "sites.csv missing"}
+    try:
+        from publishing.permission_gate import load_verified_permissions
+        eligible, skipped = load_verified_permissions(sites, today=now_ist().date())
+        return {
+            "eligible_permission_rows": len(eligible),
+            "permission_gate_skips": len(skipped),
+            "status": "eligible_permissioned_adapter_rows_present" if eligible else "no_eligible_permissioned_adapter_rows",
+        }
+    except Exception as exc:
+        return {"eligible_permission_rows": "unverifiable", "status": f"permission_gate_error:{type(exc).__name__}"}
+
+
 def now_ist():
     return datetime.now(timezone.utc).astimezone(TZ)
 
@@ -49,6 +65,7 @@ def main():
     summary_rows, summary_err = read_csv(ROOT / "operations" / "DAILY_SUMMARY.csv")
     ledger_rows, ledger_err = read_csv(ROOT / "operations" / "OPERATIONS_LEDGER.csv")
 
+    registry = permission_registry_status()
     report = {
         "project": "MAYA",
         "repository": "shkrelitechnologies-cloud/maya",
@@ -56,6 +73,7 @@ def main():
         "today_ist": today,
         "target": TARGET,
         "ledger_source": "operations/DAILY_SUMMARY.csv + operations/OPERATIONS_LEDGER.csv",
+        "permission_registry": registry,
         "errors": [e for e in (summary_err, ledger_err) if e],
     }
 
@@ -65,6 +83,7 @@ def main():
             "remaining_to_target": "unverifiable",
             "required_rate_per_hour": "unverifiable",
             "note": "Ledger unavailable or unreadable; count is not reported as zero.",
+            "publishing_mode": "disabled_fail_closed_until_verified_permission_adapter_and_readback",
         })
     else:
         today_summary = next((r for r in summary_rows if r.get("ist_date") == today), None)
@@ -80,6 +99,9 @@ def main():
         reconciled = verified == summary_verified
         remaining = max(0, TARGET - verified)
         rate = (remaining / (remaining_seconds / 3600.0)) if remaining_seconds > 0 else None
+        blocker = "No eligible verified permission+adapter rows; verified publication count cannot increase without authorized eligible destinations and public readback evidence."
+        if registry.get("eligible_permission_rows") not in (0, "unverifiable", None):
+            blocker = "Eligible permission+adapter rows exist in registry; publishing can proceed only through reviewed adapters with public URL + readback verification (not executed by ops_666)."
         report.update({
             "verified_unique_publications": verified,
             "summary_verified_publications": summary_verified,
@@ -95,8 +117,8 @@ def main():
             "prepared": int(today_summary.get("prepared", 0) or 0) if today_summary else 0,
             "duplicates": 0,
             "existing_listings_verified": 0,
-            "publishing_mode": "disabled_until_verified_permission_and_adapter",
-            "blocker_note": "No approved site-specific adapter and empty permission registry; verified publication count cannot increase without authorized eligible destinations.",
+            "publishing_mode": "disabled_fail_closed_until_verified_permission_adapter_and_readback",
+            "blocker_note": blocker,
         })
         if not reconciled:
             report["errors"].append(f"Summary/ledger mismatch: ledger_unique_verified={verified} summary={summary_verified}")

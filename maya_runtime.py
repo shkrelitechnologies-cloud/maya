@@ -2,22 +2,26 @@
 """Maya unattended maintenance runtime.
 
 Validates assets, rotates images in prepared records, maintains an IST daily
-ledger, and writes a health report. Publishing remains disabled until a
-site-specific adapter is independently reviewed and explicitly permitted.
+ledger, discovers and assesses candidate opportunities in research-only mode,
+and writes a health report. Publishing remains disabled until a site-specific
+adapter is independently reviewed and explicitly permitted with verified
+evidence.
 """
 from __future__ import annotations
 
 import csv
 import hashlib
 import json
+import re
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
 from operations_ledger import append_event, rebuild_summary
-from publishing.permission_gate import load_verified_permissions
 from publishing.discovery import run_research_discovery
+from publishing.permission_gate import load_verified_permissions
 
 ROOT = Path(__file__).resolve().parent
 TZ = ZoneInfo("Asia/Kolkata")
@@ -28,7 +32,10 @@ WALLET_KEYS = {"bitcoin", "ethereum", "solana"}
 def load_json(path: Path, default=None):
     if not path.exists():
         return default
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return default
 
 
 def now_ist():
@@ -40,6 +47,50 @@ def atomic_json(path: Path, data):
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     tmp.replace(path)
+
+
+def write_csv(path: Path, rows: list[dict], fields: list[str] | None = None):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not rows:
+        header = fields or ["site_name", "status"]
+        path.write_text(",".join(header) + "\n", encoding="utf-8")
+        return
+    fieldnames = fields or list(dict.fromkeys(k for row in rows for k in row.keys()))
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with tmp.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({k: _csv_cell(row.get(k, "")) for k in fieldnames})
+    tmp.replace(path)
+
+
+def _csv_cell(value):
+    if isinstance(value, (list, dict)):
+        return json.dumps(value, ensure_ascii=False, sort_keys=True)
+    if value is None:
+        return ""
+    return str(value)
+
+
+def _safe_slug(text: str, fallback: str = "candidate") -> str:
+    slug = re.sub(r"[^a-zA-Z0-9._-]+", "-", (text or "").strip().lower()).strip("-._")
+    return slug[:80] or fallback
+
+
+def _domain(url: str) -> str:
+    try:
+        return (urlparse(url).hostname or "").lower().rstrip(".")
+    except ValueError:
+        return ""
+
+
+def _https_url(url: str) -> bool:
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return False
+    return parsed.scheme == "https" and bool(parsed.netloc)
 
 
 def validate():
@@ -95,6 +146,8 @@ def validate():
             "daily_limit": p.daily_limit,
             "evidence_url": p.evidence_url,
             "reviewed_on": p.reviewed_on.isoformat(),
+            "adapter_module": p.adapter_module,
+            "adapter_class": p.adapter_class,
         } for p in permissions]
         warnings.extend(permission_skips)
     else:
@@ -107,10 +160,16 @@ def build_queue(wallets, images, eligible, day_key, rotation_cursor=0):
     if not images or not wallets:
         return []
     rows = []
+    seen = set()
     for index, site in enumerate(eligible):
+        key = (site.get("domain", ""), site.get("submission_url", ""), day_key)
+        if key in seen:
+            continue
+        seen.add(key)
         image = images[(rotation_cursor + index) % len(images)]
         rows.append({
             "site_name": site.get("site_name", ""),
+            "domain": site.get("domain", ""),
             "submission_url": site.get("submission_url", ""),
             "rules_url": site.get("rules_url", ""),
             "language": site.get("language", ""),
@@ -125,22 +184,8 @@ def build_queue(wallets, images, eligible, day_key, rotation_cursor=0):
     return rows
 
 
-def write_csv(path, rows):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        path.write_text("site_name,status\n", encoding="utf-8")
-        return
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    with tmp.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=list(rows[0]))
-        writer.writeheader()
-        writer.writerows(rows)
-    tmp.replace(path)
-
-
-
 def load_discovery_candidates(config):
-    """Read the research-only candidate queue; never treats candidates as approved sites."""
+    """Read curated research-only candidates; never treats candidates as approved sites."""
     settings = config.get("site_discovery", {}) if isinstance(config, dict) else {}
     if not settings.get("enabled", False):
         return {"enabled": False, "mode": "disabled", "candidate_count": 0, "candidates": []}
@@ -153,41 +198,291 @@ def load_discovery_candidates(config):
                 "candidates": [], "warning": "Discovery candidate registry missing"}
     with registry.open(newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle)
-        if not required.issubset(set(reader.fieldnames or [])):
+        fieldnames = set(reader.fieldnames or [])
+        if not required.issubset(fieldnames):
             return {"enabled": True, "mode": "research_only", "candidate_count": 0,
                     "candidates": [], "warning": "Discovery candidate registry missing required columns"}
         candidates = []
         for row in reader:
-            if row.get("status", "").strip() != "RESEARCH_ONLY":
-                continue
+            status = (row.get("status") or "").strip() or "RESEARCH_ONLY"
+            if status not in {"RESEARCH_ONLY", "NEEDS_REVIEW", "BLOCKED", "INELIGIBLE"}:
+                status = "RESEARCH_ONLY"
+            website = (row.get("website") or "").strip()
+            domain = _domain(website)
             candidates.append({
-                "candidate_name": row["candidate_name"].strip(),
-                "website": row["website"].strip(),
-                "official_rules_or_submission_url": row["official_rules_or_submission_url"].strip(),
-                "automation_permission": row["automation_permission"].strip(),
-                "status": "RESEARCH_ONLY",
+                "candidate_name": (row.get("candidate_name") or "").strip(),
+                "website": website,
+                "domain": domain,
+                "country_hint": (row.get("country_hint") or "global/unknown").strip() or "global/unknown",
+                "language": (row.get("language") or "unknown").strip() or "unknown",
+                "category": (row.get("category") or "curated_research").strip() or "curated_research",
+                "official_rules_or_submission_url": (row.get("official_rules_or_submission_url") or "").strip(),
+                "fit": (row.get("fit") or "").strip(),
+                "submission_type": (row.get("submission_type") or "").strip(),
+                "submission_method_hints": [s.strip() for s in (row.get("submission_method_hints") or row.get("submission_type") or "").split(";") if s.strip()] or ["manual_review"],
+                "automation_permission": (row.get("automation_permission") or "NOT_VERIFIED").strip() or "NOT_VERIFIED",
+                "eligibility_status": status,
+                "status_reasons": [s.strip() for s in (row.get("status_reasons") or row.get("notes") or "").split(";") if s.strip()][:5],
+                "status": status,
+                "last_checked_ist": (row.get("last_checked_ist") or "").strip(),
+                "notes": (row.get("notes") or "").strip(),
+                "source": "curated_registry",
             })
     return {"enabled": True, "mode": "research_only",
             "candidate_count": len(candidates), "candidates": candidates}
 
+
+def _load_web_leads(state_dir: Path) -> list[dict]:
+    leads_path = state_dir / "discovery_leads.json"
+    data = load_json(leads_path, [])
+    return data if isinstance(data, list) else []
+
+
+def _candidate_from_lead(lead: dict) -> dict | None:
+    if not isinstance(lead, dict):
+        return None
+    url = str(lead.get("url", "")).strip()
+    domain = _domain(url) or str(lead.get("domain", "")).strip().lower()
+    if not url or not domain:
+        return None
+    rules = lead.get("rules_or_submission_links") or []
+    if not isinstance(rules, list):
+        rules = []
+    methods = lead.get("submission_method_hints") or []
+    if isinstance(methods, str):
+        methods = [m.strip() for m in methods.split(";") if m.strip()]
+    if not isinstance(methods, list) or not methods:
+        methods = ["unknown_manual_review"]
+    reasons = lead.get("status_reasons") or []
+    if isinstance(reasons, str):
+        reasons = [r.strip() for r in reasons.split(";") if r.strip()]
+    if not isinstance(reasons, list):
+        reasons = []
+    status = str(lead.get("eligibility_status") or "research_only_needs_review")
+    return {
+        "candidate_name": str(lead.get("title") or lead.get("page_title") or domain)[:200],
+        "website": url,
+        "domain": domain,
+        "country_hint": str(lead.get("country_hint") or "global/unknown"),
+        "language": str(lead.get("language") or "unknown"),
+        "category": str(lead.get("category") or "general_relevant"),
+        "official_rules_or_submission_url": rules[0] if rules else "",
+        "fit": "Web-discovered relevant lead; requires manual permission and eligibility review.",
+        "submission_type": "; ".join(str(m) for m in methods[:4]),
+        "submission_method_hints": [str(m) for m in methods[:6]],
+        "automation_permission": str(lead.get("automation_permission") or "NOT_VERIFIED"),
+        "eligibility_status": status,
+        "status_reasons": [str(r) for r in reasons[:8]],
+        "status": status,
+        "last_checked_ist": "",
+        "last_seen_utc": str(lead.get("last_seen_utc") or ""),
+        "notes": "Auto-assessed from public page inspection only; no publishing permission granted.",
+        "source": "web_discovery",
+        "eligibility_evidence": lead.get("eligibility_evidence") or {},
+        "submission_links": (lead.get("submission_links") or [])[:10] if isinstance(lead.get("submission_links"), list) else [],
+    }
+
+
+def build_candidate_review_queue(curated: list[dict], leads: list[dict], limit: int = 500):
+    by_url = {}
+    for item in curated + [c for c in (_candidate_from_lead(l) for l in leads) if c]:
+        url = str(item.get("website") or item.get("url") or "").strip()
+        domain = _domain(url)
+        if not url or not domain:
+            continue
+        key = url.rstrip("/")
+        record = dict(item)
+        record["website"] = url
+        record["domain"] = domain
+        record.setdefault("verification_status", "UNVERIFIED_RESEARCH_LEAD")
+        record.setdefault("automation_permission", "NOT_VERIFIED")
+        record["review_only"] = True
+        record["approved_for_publishing"] = False
+        prev = by_url.get(key)
+        if not prev:
+            by_url[key] = record
+            continue
+        merged = dict(prev)
+        for k, v in record.items():
+            if v in (None, "", [], {}):
+                continue
+            if k in ("candidate_name", "fit", "notes") and prev.get("source") == "curated_registry" and merged.get(k):
+                continue
+            merged[k] = v
+        if prev.get("source") == "curated_registry" and record.get("source") == "web_discovery":
+            merged["source"] = "curated_registry+web_discovery"
+        elif prev.get("source") != "curated_registry":
+            merged["source"] = record.get("source", merged.get("source", "unknown"))
+        by_url[key] = merged
+    queue = list(by_url.values())
+    queue.sort(key=lambda x: (str(x.get("eligibility_status", "")), str(x.get("domain", "")), str(x.get("website", ""))))
+    return queue[: max(1, int(limit))]
+
+
+def generate_review_scaffolding(queue: list[dict], state_dir: Path):
+    assess_dir = state_dir / "candidate_assessments"
+    scaffold_dir = state_dir / "scaffolding" / "drafts"
+    assess_dir.mkdir(parents=True, exist_ok=True)
+    scaffold_dir.mkdir(parents=True, exist_ok=True)
+    generated = {"assessments": 0, "scaffolds": 0, "items": []}
+    for item in queue:
+        domain = item.get("domain") or _domain(item.get("website", ""))
+        if not domain:
+            continue
+        slug = _safe_slug(domain)
+        methods = item.get("submission_method_hints") or []
+        reasons = item.get("status_reasons") or []
+        evidence = item.get("eligibility_evidence") or {}
+        rules = [item.get("official_rules_or_submission_url")] if item.get("official_rules_or_submission_url") else []
+        if isinstance(evidence, dict):
+            rules += [u for u in (evidence.get("official_rules_or_submission_urls") or []) if isinstance(u, str)]
+        rules = [u for u in dict.fromkeys([r for r in rules if isinstance(r, str) and r.strip()])][:10]
+        assessment = {
+            "review_only": True,
+            "approved_for_publishing": False,
+            "candidate_name": item.get("candidate_name", ""),
+            "website": item.get("website", ""),
+            "domain": domain,
+            "category": item.get("category", ""),
+            "country_hint": item.get("country_hint", ""),
+            "language": item.get("language", ""),
+            "submission_method_hints": methods,
+            "eligibility_status": item.get("eligibility_status", ""),
+            "status_reasons": reasons,
+            "automation_permission": item.get("automation_permission", "NOT_VERIFIED"),
+            "official_rules_or_submission_urls": rules,
+            "evidence": evidence,
+            "next_required_steps": [
+                "Confirm current official rules explicitly permit the exact automated image+wallet payload.",
+                "Obtain and record dated HTTPS permission evidence in sites.csv (draft only; not approval).",
+                "Implement and test a dedicated publishing.adapters.<site> adapter only after permission is verified.",
+                "Require public URL + readback/evidence before any verified publication count.",
+            ],
+            "notes": "Draft eligibility assessment generated from public/research data. Not permission, not an adapter, not a publication.",
+        }
+        atomic_json(assess_dir / f"{slug}.json", assessment)
+        generated["assessments"] += 1
+        clearly_supported = (
+            item.get("eligibility_status") in {"candidate_needs_permission_review", "restricted_needs_permission_review"}
+            and any(m in methods for m in ("web_form_candidate", "external_submission_link", "official_api_candidate", "mailto_contact"))
+            and bool(rules or _https_url(item.get("website", "")))
+            and not any(r == "challenge_or_access_control_observed" for r in reasons)
+        )
+        if clearly_supported:
+            scaffold = {
+                "draft_only": True,
+                "not_registered_adapter": True,
+                "target_domain": domain,
+                "candidate_url": item.get("website", ""),
+                "suggested_permission_row_template": {
+                    "site_name": item.get("candidate_name", domain),
+                    "domain": domain,
+                    "submission_url": item.get("website", ""),
+                    "rules_url": rules[0] if rules else "",
+                    "language": item.get("language", "unknown"),
+                    "fundraising_allowed": "REVIEW_REQUIRED",
+                    "automation_allowed": "REVIEW_REQUIRED",
+                    "permitted_method": (methods[0] if methods else "REVIEW_REQUIRED"),
+                    "daily_limit": "1",
+                    "reviewed_on": "",
+                    "evidence_url": rules[0] if rules else "",
+                    "adapter_module": f"publishing.adapters.draft_{_safe_slug(domain, 'site').replace('-', '_')}",
+                    "adapter_class": "DraftAdapterReviewOnly",
+                    "notes": "DRAFT TEMPLATE ONLY. Do not register in sites.csv without verified permission and a tested dedicated adapter.",
+                },
+                "suggested_adapter_contract_checks": [
+                    "preflight: verify HTTPS host, expected page/form markers, no CAPTCHA/login/payment barrier, and current permission evidence",
+                    "submit: only exact image+wallet payload if explicitly permitted; stop on ambiguity or controls",
+                    "verify_publication: require durable public URL and separate readback/evidence URL",
+                ],
+                "evidence_urls_for_review": rules,
+                "status_reasons": reasons,
+            }
+            atomic_json(scaffold_dir / f"{slug}.json", scaffold)
+            generated["scaffolds"] += 1
+            generated["items"].append({"domain": domain, "scaffold": f"state/scaffolding/drafts/{slug}.json"})
+    return generated
+
+
+def build_candidate_pipeline(config, state_dir: Path):
+    discovery_meta = load_discovery_candidates(config)
+    discovery_meta["web_search"] = run_research_discovery(config.get("site_discovery", {}), state_dir)
+    curated = discovery_meta.get("candidates", [])
+    leads = _load_web_leads(state_dir)
+    settings = config.get("site_discovery", {}) if isinstance(config, dict) else {}
+    queue_limit = max(10, min(1000, int(settings.get("max_stored_leads", 500))))
+    queue = build_candidate_review_queue(curated, leads, limit=queue_limit)
+
+    atomic_json(state_dir / "candidate_review_queue.json", {
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "mode": "research_only",
+        "approved_for_publishing": False,
+        "count": len(queue),
+        "candidates": queue,
+    })
+    csv_rows = []
+    for item in queue:
+        csv_rows.append({
+            "candidate_name": item.get("candidate_name", ""),
+            "website": item.get("website", ""),
+            "domain": item.get("domain", ""),
+            "category": item.get("category", ""),
+            "country_hint": item.get("country_hint", ""),
+            "language": item.get("language", ""),
+            "submission_method_hints": item.get("submission_method_hints", []),
+            "eligibility_status": item.get("eligibility_status", ""),
+            "status_reasons": item.get("status_reasons", []),
+            "automation_permission": item.get("automation_permission", "NOT_VERIFIED"),
+            "official_rules_or_submission_url": item.get("official_rules_or_submission_url", ""),
+            "source": item.get("source", ""),
+            "review_only": "true",
+        })
+    write_csv(state_dir / "candidate_review_queue.csv", csv_rows, fields=[
+        "candidate_name", "website", "domain", "category", "country_hint", "language",
+        "submission_method_hints", "eligibility_status", "status_reasons",
+        "automation_permission", "official_rules_or_submission_url", "source", "review_only",
+    ])
+
+    scaffolding = generate_review_scaffolding(queue, state_dir)
+    status_counts = {}
+    for item in queue:
+        status = str(item.get("eligibility_status") or "unknown")
+        status_counts[status] = status_counts.get(status, 0) + 1
+    discovery_meta["candidate_review_queue"] = {
+        "count": len(queue),
+        "status_counts": status_counts,
+        "json_path": "state/candidate_review_queue.json",
+        "csv_path": "state/candidate_review_queue.csv",
+        "assessment_records": scaffolding["assessments"],
+        "draft_scaffolds_generated": scaffolding["scaffolds"],
+        "draft_scaffold_items": scaffolding["items"][:25],
+    }
+    return discovery_meta
+
+
 def main():
     stamp = now_ist()
     day_key = stamp.strftime("%Y-%m-%d")
-    state_path = ROOT / "state" / "daily_state.json"
-    report_path = ROOT / "state" / "health.json"
-    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_dir = ROOT / "state"
+    state_path = state_dir / "daily_state.json"
+    report_path = state_dir / "health.json"
+    state_dir.mkdir(parents=True, exist_ok=True)
 
     try:
         append_event(ROOT, event_type="run", status="run_started",
                      message="Maya maintenance run started; publishing remains disabled.")
         config, target, wallets, images, eligible, errors, warnings = validate()
-        discovery = load_discovery_candidates(config)
-        discovery["web_search"] = run_research_discovery(config.get("site_discovery", {}), ROOT / "state")
+        discovery = build_candidate_pipeline(config, state_dir)
         if discovery.get("warning"):
             warnings.append(discovery["warning"])
+        ws = discovery.get("web_search") or {}
+        if isinstance(ws, dict):
+            for err in ws.get("errors", [])[:10]:
+                warnings.append(f"discovery: {err}")
+
         state = load_json(state_path, {})
         if not isinstance(state, dict):
-            errors.append("daily_state.json is not a JSON object; preserved and fail-closed")
+            errors.append("daily_state.json is not a JSON object; fail-closed to fresh runtime-owned state")
             state = {}
         if state.get("day_ist") != day_key:
             history = state.get("history", [])
@@ -205,7 +500,7 @@ def main():
                 "lifetime_verified_successes": int(state.get("lifetime_verified_successes", 0) or 0),
             }
 
-        for key in ("verified_successes", "failed", "lifetime_verified_successes"):
+        for key in ("verified_successes", "failed", "lifetime_verified_successes", "image_rotation_cursor"):
             try:
                 state[key] = max(0, int(state.get(key, 0)))
             except (TypeError, ValueError):
@@ -215,7 +510,6 @@ def main():
         state["target"] = target
         state["timezone"] = "Asia/Kolkata"
         state["last_heartbeat_ist"] = stamp.isoformat()
-        state["remaining_to_target"] = max(0, target - state["verified_successes"])
 
         rotation_cursor = max(0, int(state.get("image_rotation_cursor", 0) or 0))
         queue = build_queue(wallets, images, eligible, day_key, rotation_cursor) if not errors else []
@@ -231,7 +525,8 @@ def main():
         else:
             state.setdefault("image_rotation_cursor", rotation_cursor)
             append_event(ROOT, event_type="queue", status="no_eligible_sites",
-                         message="No eligible sites were available for queue preparation.")
+                         message="No eligible, permissioned sites were available for queue preparation.")
+
         ledger_summary = rebuild_summary(ROOT, target)
         state["verified_successes"] = max(0, int(ledger_summary.get("verified_publications", 0)))
         state["lifetime_verified_successes"] = max(
@@ -239,7 +534,10 @@ def main():
         )
         state["remaining_to_target"] = max(0, target - state["verified_successes"])
 
-        write_csv(ROOT / "submission_queue.csv", queue)
+        write_csv(ROOT / "submission_queue.csv", queue, fields=[
+            "site_name", "domain", "submission_url", "rules_url", "language", "image_path",
+            "image_sha256", "bitcoin", "ethereum", "solana", "status", "day_ist",
+        ])
         atomic_json(state_path, state)
 
         report = {
@@ -259,7 +557,7 @@ def main():
             "published_by_this_runtime": 0,
             "errors": errors,
             "warnings": warnings,
-            "publishing": "DISABLED: discovery mode only; no verified site-specific permitted adapter is configured",
+            "publishing": "DISABLED: fail-closed. No verified permission + dedicated adapter + public readback evidence; research/review pipeline remains active.",
             "manual_checked": (ROOT / "OPERATIONS_MANUAL.md").is_file(),
             "repair_log_checked": (ROOT / "SELF_REPAIR_LOG.md").is_file(),
             "state_persistence": "GitHub Actions cache restore/save plus run artifacts; live continuity must be verified",

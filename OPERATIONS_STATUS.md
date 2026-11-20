@@ -1,19 +1,15 @@
 # Maya Operations Status
 
-- Daily target: **666 verified live publications per IST day**.
+- Daily target: **666 verified unique publications per IST day**.
 - Lifetime total: cumulative verified publications; never reset.
-- Current mode: **site discovery enabled, research-only**, using Playwright Chromium across DuckDuckGo, Bing, and Google, with a 15-minute maintenance schedule.
-- Discovery queue: `discovery_candidates.csv`; candidates are research leads, not approved destinations.
-- Publishing: **DISABLED** until a site's current rules or written authorization explicitly permit the exact automated submission method and a dedicated adapter passes tests.
-- Count rule: only unique, independently verified live publication URLs/receipt IDs count.
-- CAPTCHA, login walls, permission barriers, rate limits and moderation blocks: skip the destination; never bypass.
-- Self-repair: only bounded, deterministic local repairs are allowed. Code/security/policy changes require tests and owner review.
+- Current mode: **research-only discovery and candidate assessment enabled** (bounded Playwright/Chromium search + public page inspection, worldwide/multilingual queries, no bypass of CAPTCHA/login/payment/access controls).
+- Candidate pipeline: curated `discovery_candidates.csv` + web leads (`state/discovery_leads.json`) merged into review queue artifacts (`state/candidate_review_queue.json/.csv`) with category/country/language hints, submission-method hints, eligibility evidence, status, and reasons. Draft assessments/scaffolding may be generated in `state/` for review only.
+- Publishing: **DISABLED / fail-closed**. No rows in `sites.csv` currently satisfy verified permission + dedicated adapter requirements, and no executable adapter is installed.
+- Count rule: only unique, independently verified live publication URLs with separate readback/evidence count (`published_verified`).
+- CAPTCHA, login walls, permission barriers, rate limits, moderation blocks, and policy ambiguity: skip; never bypass.
 - Manual: [OPERATIONS_MANUAL.md](OPERATIONS_MANUAL.md)
-- Discovery queue: [discovery_candidates.csv](discovery_candidates.csv)
 - Permission registry: [sites.csv](sites.csv)
 - Adapter requirements: [publishing/README.md](publishing/README.md)
-- Repository-local event ledger: [operations/OPERATIONS_LEDGER.csv](operations/OPERATIONS_LEDGER.csv)
-- IST daily summary: [operations/DAILY_SUMMARY.csv](operations/DAILY_SUMMARY.csv)
-- Repair history: [SELF_REPAIR_LOG.md](SELF_REPAIR_LOG.md)
+- Ledgers: [operations/OPERATIONS_LEDGER.csv](operations/OPERATIONS_LEDGER.csv), [operations/DAILY_SUMMARY.csv](operations/DAILY_SUMMARY.csv)
+- Audit command: `python ops_666.py`
 - Current runtime: [maya_runtime.py](maya_runtime.py)
-- Health reports: GitHub Actions artifacts.

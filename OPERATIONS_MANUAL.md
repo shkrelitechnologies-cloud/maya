@@ -6,10 +6,12 @@ Clock: Asia/Kolkata (IST)
 Daily verified-publication target: 666
 Lifetime target: tracked cumulatively; never reset at IST midnight
 
-## 0. Current activation state (2026-11-19)
-Site discovery is ENABLED in research-only mode. Every 15-minute maintenance run launches headless Chromium through Playwright, searches public DuckDuckGo, Bing, Google, Mojeek, and Startpage result pages using the configured crypto-donation and image-submission queries, opens a bounded set of candidate pages, and inspects accessible public pages for relevant information and links to official rules/submission pages. Unverified leads are recorded in `state/discovery_leads.json` and included in the health artifact. Browser challenges, CAPTCHAs, login walls, access-denied responses, and rate limits are skipped; no bypass or fallback scraping is attempted. Search results remain research leads only and never become approved destinations automatically. The initial curated queue is `discovery_candidates.csv`. Search failures or access blocks are skipped and logged; no CAPTCHA or access-control bypass is attempted. Search results are leads only and never become approved destinations automatically. The root `sites.csv` is currently header-only and `publishing/adapters/` contains no executable site adapter, so live publishing MUST remain disabled until each destination has current evidence-backed permission and a tested dedicated adapter.
+## 0. Current activation state
+Site discovery is ENABLED in research-only mode. Each maintenance run can launch headless Chromium through Playwright, search configured public engines (bounded by `config.json`) with worldwide/multilingual queries, open a bounded set of candidate pages, inspect publicly accessible pages, and extract research-only signals such as category, country/language hints, submission-method hints, official rules/submission links, eligibility evidence, status, and reasons. Challenges, CAPTCHAs, login/payment/access-control barriers, and rate limits are skipped; no bypass or fallback scraping is attempted.
 
-The permission gate requires an explicit automation permission, HTTPS submission/rules/evidence URLs, exact submission-host match, a review date no older than 30 days, an explicit permitted method, a daily limit from 1 to 10, and a dedicated `publishing.adapters.*` adapter class. A plain “allowed” field is not sufficient.
+Unverified web leads are stored in `state/discovery_leads.json`. The runtime also merges curated `discovery_candidates.csv` entries and web leads into a rich review queue (`state/candidate_review_queue.json` and `state/candidate_review_queue.csv`), generates draft eligibility assessments under `state/candidate_assessments/`, and may generate draft scaffolding under `state/scaffolding/drafts/` for clearly supported review cases. These artifacts are research/review only: they are not permissions, not adapters, not registrations, and never publication evidence.
+
+The root `sites.csv` remains the permission registry and is currently header-only. `publishing/adapters/` contains no executable site-specific adapter. Live publishing MUST remain disabled and fail-closed until each destination has current evidence-backed permission and a tested dedicated adapter. The permission gate requires explicit automation permission, HTTPS submission/rules/evidence URLs, exact submission-host match, a review date no older than 30 days, an explicit permitted method, a daily limit from 1 to 10, and a dedicated `publishing.adapters.*` adapter class. A plain “allowed” field is not sufficient. Verified publication counting requires a public publication URL plus separate readback/evidence.
 
 ## 1. Mandatory run protocol
 Before doing any work, the runtime MUST read this manual and the machine-readable `config.json`. If either is missing, unreadable, or invalid, stop queue preparation and mark the run degraded/blocked. Never guess a policy or silently replace campaign data.
@@ -17,16 +19,16 @@ Before doing any work, the runtime MUST read this manual and the machine-readabl
 Every maintenance run must:
 1. Use the workflow's single-run concurrency lock.
 2. Read this manual, configuration, site registry, wallet file, image directory, persistent state, and repair log.
-3. Run browser-based, research-only website discovery across configured public search engines; open candidate pages, capture official policy/submission links where publicly accessible, record unverified leads, and validate campaign assets and each site's documented automation permission before considering it eligible.
-4. Run syntax/smoke checks before any future adapter can submit.
-5. Reconcile verifiable submission receipts against daily and lifetime ledgers.
-6. Prepare only eligible work; use reviewed site-specific adapters only.
-7. Verify each publication using a durable public URL or documented site receipt. A queued item, HTTP request, form click, accepted-for-review response, or unverified screenshot is NOT a published success.
-8. Every future site adapter must append its prepared, attempted, pending, rejected, failed, blocked, and verified-publication outcomes through `operations_ledger.append_event`; a `published_verified` event must include both the public publication URL and a separate evidence/readback URL.
-9. Persist state and emit machine-readable health and human-readable run summaries.
-10. Append new diagnosis, repair, test evidence, and outcome to the repair log.
+3. Validate campaign assets and enforce the permission gate for `sites.csv`; only rows satisfying all verified-permission and adapter requirements may be treated as eligible.
+4. Run browser-based, research-only discovery when enabled (bounded/resource-aware): search configured public engines, inspect candidate pages, detect submission-method and eligibility signals, record unverified leads, and skip challenges/CAPTCHAs/login/payment/access-control barriers without bypass.
+5. Maintain a rich candidate/review queue and duplicate prevention across curated and discovered leads, including URLs, category/country/language hints, submission method hints, eligibility evidence, status, and reasons. Generate draft assessment/evidence records and draft scaffolding only for clearly supported review cases; never auto-approve or auto-register.
+6. Reconcile verifiable submission receipts against daily and lifetime ledgers.
+7. Prepare only eligible, permissioned work; use reviewed site-specific adapters only. Without a verified permissioned adapter path, remain fail-closed and prepare no publication attempts.
+8. Verify each publication using a durable public URL and separate evidence/readback URL. A queued item, HTTP request, form click, accepted-for-review response, or unverified screenshot is NOT a published success.
+9. Every future site adapter must append prepared, attempted, pending, rejected, failed, blocked, and verified-publication outcomes through `operations_ledger.append_event`; a `published_verified` event must include both the public publication URL and a separate evidence/readback URL.
+10. Persist runtime state, emit machine-readable health, and preserve ledgers/history.
 
-The current baseline has no verified publishing adapter. It validates the 15 existing images and wallet file, discovers candidate sites, and prepares records only; it does not claim to publish until an eligible site-specific adapter is installed and verified.
+The current baseline has no verified publishing adapter and no approved `sites.csv` rows. It validates assets, performs research-only discovery/assessment, prepares records only when explicitly eligible, and does not claim to publish until an eligible site-specific adapter is installed and verified.
 
 ## 2. Watchdog and recovery
 - `.github/workflows/maya-maintenance.yml` runs every 15 minutes.
