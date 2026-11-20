@@ -69,7 +69,17 @@
       "التبرع جمع التبرعات إرسال حملة القواعد الرسمية",
       "दान अभियान जमा करने के नियम आधिकारिक",
       "সংগ্রহ অভিযান জমা দেওয়ার নিয়ম",
-      "penggalangan dana kirim kampanye aturan resmi"
+      "penggalangan dana kirim kampanye aturan resmi",
+      "submit website link free directory worldwide rules",
+      "public resource directory add url submission policy",
+      "directorio mundial enviar enlace sitio web reglas",
+      "annuaire mondial soumettre lien site règles",
+      "weltweites verzeichnis link einreichen richtlinien",
+      "diretório mundial enviar link site regras",
+      "directorio internazionale invia link regole",
+      "global link directory submit URL multilingual",
+      "community resource page add website link policy",
+      "open directory suggest a site link submission"
     ],
     "search_engines": [
       "duckduckgo",
@@ -78,7 +88,7 @@
       "mojeek",
       "yahoo"
     ],
-    "browser_timeout_seconds": 6,
-    "max_pages_per_run": 40
+    "browser_timeout_seconds": 8,
+    "max_pages_per_run": 60
   }
 }
